@@ -405,8 +405,9 @@ async function startBuildSession() {
 
     currentProject = project;
 
-    // Generate text from the right biome
-    const text = generateBuildingText(project, currentPlayer.age);
+    // Generate text from the right biome — 2x remaining blocks so building finishes halfway
+    const blocksRemaining = project.blocksNeeded - (building.blocksPlaced || 0);
+    const text = generateBuildingText(project, currentPlayer.age, blocksRemaining);
     if (!text) return;
 
     createEngine(text);
@@ -758,8 +759,9 @@ async function handleTextComplete() {
         return;
     }
 
-    // Generate MORE text and keep going! (Zeigarnik - don't stop!)
-    const newText = generateBuildingText(currentProject, currentPlayer.age);
+    // Generate MORE text and keep going!
+    const remaining = currentProject.blocksNeeded - (building ? building.blocksPlaced : 0);
+    const newText = generateBuildingText(currentProject, currentPlayer.age, remaining);
     createEngine(newText);
     renderTextDisplay(newText);
     wordCount = 0;

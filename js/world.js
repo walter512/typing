@@ -341,12 +341,12 @@ function getWordsForProject(project, playerAge) {
     return allTexts;
 }
 
-function generateBuildingText(project, playerAge) {
+function generateBuildingText(project, playerAge, blocksRemaining) {
     const words = getWordsForProject(project, playerAge);
-    // Generate enough text for a 3-5 minute session
-    // Each word = 1 block placed, so this also controls blocks per session
-    const count = playerAge <= 8 ? 25 : playerAge <= 11 ? 40 : 55;
-    // If we need more words than available, cycle through them
+    // Generate 2x the remaining blocks as words
+    // so the building completes around halfway — feels rewarding to "skip" the rest
+    const minWords = playerAge <= 8 ? 10 : 15;
+    const count = Math.max(minWords, (blocksRemaining || project.blocksNeeded) * 2);
     const result = [];
     for (let i = 0; i < count; i++) {
         result.push(words[i % words.length]);
