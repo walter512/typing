@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypeCraft</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- SCREEN: Profile Selection -->
+    <div id="screen-profiles" class="screen active">
+        <div class="title-banner">
+            <h1>TypeCraft</h1>
+            <p class="subtitle">Leer blind typen in Minecraft-stijl</p>
+        </div>
+        <div class="profile-cards">
+            <div class="profile-card" data-player="sebas" onclick="selectProfile('sebas')">
+                <div class="avatar avatar-sebas"></div>
+                <h2>Sebas</h2>
+                <p class="age-badge">13 jaar</p>
+                <div class="player-level" id="level-sebas">Level 1</div>
+            </div>
+            <div class="profile-card" data-player="jonathan" onclick="selectProfile('jonathan')">
+                <div class="avatar avatar-jonathan"></div>
+                <h2>Jonathan</h2>
+                <p class="age-badge">11 jaar</p>
+                <div class="player-level" id="level-jonathan">Level 1</div>
+            </div>
+            <div class="profile-card" data-player="benjamin" onclick="selectProfile('benjamin')">
+                <div class="avatar avatar-benjamin"></div>
+                <h2>Benjamin</h2>
+                <p class="age-badge">7 jaar</p>
+                <div class="player-level" id="level-benjamin">Level 1</div>
+            </div>
+        </div>
+        <div class="bottom-buttons">
+            <button class="btn-parent" onclick="showParentLogin()">
+                ⚙ Ouder Dashboard
+            </button>
+            <button class="btn-parent btn-sound" id="btn-sound" onclick="toggleSoundBtn()">
+                🔊 Geluid Aan
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN: Player Menu -->
+    <div id="screen-menu" class="screen">
+        <div class="menu-header">
+            <button class="btn-back" onclick="showScreen('screen-profiles')">← Terug</button>
+            <div class="player-info">
+                <span id="menu-player-name"></span>
+                <span id="menu-player-level"></span>
+            </div>
+        </div>
+        <div class="menu-biome" id="menu-biome">
+            <div class="biome-title" id="biome-title">Plains</div>
+            <div class="biome-progress" id="biome-progress"></div>
+        </div>
+        <div class="xp-section">
+            <div class="xp-label"><span id="menu-xp-current">0</span> / <span id="menu-xp-next">100</span> XP</div>
+            <div class="xp-bar"><div class="xp-fill" id="menu-xp-fill" style="width:0%"></div></div>
+        </div>
+        <div class="menu-stats">
+            <div class="stat-box">
+                <div class="stat-value" id="menu-wpm">0</div>
+                <div class="stat-label">WPM</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="menu-accuracy">0%</div>
+                <div class="stat-label">Nauwkeurigheid</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="menu-streak">0</div>
+                <div class="stat-label">Streak 🔥</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="menu-xp">0</div>
+                <div class="stat-label">XP</div>
+            </div>
+        </div>
+        <div class="menu-buttons">
+            <button class="btn-minecraft btn-primary" onclick="startLesson()">
+                <span class="btn-icon">⛏</span> Les Starten
+            </button>
+            <button class="btn-minecraft" onclick="startDailyChallenge()">
+                <span class="btn-icon">⚔</span> Dagelijkse Uitdaging
+            </button>
+            <button class="btn-minecraft" onclick="showInventory()">
+                <span class="btn-icon">🎒</span> Inventaris
+            </button>
+            <button class="btn-minecraft" onclick="showFamilyBoard()">
+                <span class="btn-icon">🏆</span> Familie Scorebord
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN: Typing Lesson -->
+    <div id="screen-lesson" class="screen">
+        <div class="lesson-header">
+            <button class="btn-back" onclick="endLesson()">← Stop</button>
+            <div class="lesson-info">
+                <span id="lesson-title">Les 1: Home Row</span>
+                <span id="lesson-biome-badge" class="biome-badge">Plains</span>
+            </div>
+            <div class="lesson-stats-bar">
+                <span id="live-wpm">0 WPM</span>
+                <span id="live-accuracy">100%</span>
+                <span id="live-timer">0:00</span>
+            </div>
+        </div>
+        <div class="lesson-area">
+            <div class="mob-area" id="mob-area"></div>
+            <div class="text-display" id="text-display"></div>
+            <textarea id="typing-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+            <div class="keyboard-visual" id="keyboard-visual"></div>
+        </div>
+        <div class="lesson-progress-bar">
+            <div class="progress-fill" id="lesson-progress-fill"></div>
+        </div>
+    </div>
+
+    <!-- SCREEN: Lesson Results -->
+    <div id="screen-results" class="screen">
+        <div class="results-container">
+            <h2 id="results-title">Les Voltooid!</h2>
+            <div class="results-stats">
+                <div class="result-stat">
+                    <div class="result-value" id="result-wpm">0</div>
+                    <div class="result-label">WPM</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-value" id="result-accuracy">0%</div>
+                    <div class="result-label">Nauwkeurigheid</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-value" id="result-xp">+0</div>
+                    <div class="result-label">XP</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-value" id="result-blocks">0</div>
+                    <div class="result-label">Blokken</div>
+                </div>
+            </div>
+            <div class="results-resources" id="results-resources"></div>
+            <div class="results-achievements" id="results-achievements"></div>
+            <div class="results-keys" id="results-keys"></div>
+            <div class="results-buttons">
+                <button class="btn-minecraft btn-primary" onclick="startLesson()">Volgende Les</button>
+                <button class="btn-minecraft" onclick="showScreen('screen-menu')">Terug naar Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN: Inventory -->
+    <div id="screen-inventory" class="screen">
+        <div class="inventory-header">
+            <button class="btn-back" onclick="showScreen('screen-menu')">← Terug</button>
+            <h2>Inventaris</h2>
+        </div>
+        <div class="inventory-grid" id="inventory-grid"></div>
+        <div class="crafting-section" id="crafting-section"></div>
+    </div>
+
+    <!-- SCREEN: Family Scoreboard -->
+    <div id="screen-family" class="screen">
+        <div class="family-header">
+            <button class="btn-back" onclick="showScreen('screen-menu')">← Terug</button>
+            <h2>Familie Scorebord</h2>
+        </div>
+        <div class="family-streak" id="family-streak"></div>
+        <div class="family-scores" id="family-scores"></div>
+        <div class="shared-build" id="shared-build"></div>
+    </div>
+
+    <!-- SCREEN: Daily Challenge -->
+    <div id="screen-daily" class="screen">
+        <div class="daily-header">
+            <button class="btn-back" onclick="showScreen('screen-menu')">← Terug</button>
+            <h2>Dagelijkse Uitdaging</h2>
+        </div>
+        <div class="daily-content" id="daily-content"></div>
+    </div>
+
+    <!-- SCREEN: Parent Dashboard -->
+    <div id="screen-parent-login" class="screen">
+        <div class="parent-login-box">
+            <h2>Ouder Dashboard</h2>
+            <p>Voer de PIN in</p>
+            <div class="pin-input" id="pin-input">
+                <input type="password" maxlength="4" id="parent-pin" placeholder="____"
+                       onkeyup="checkParentPin(event)">
+            </div>
+            <p class="pin-hint" id="pin-hint">Standaard PIN: 1234</p>
+            <button class="btn-back" onclick="showScreen('screen-profiles')">← Terug</button>
+        </div>
+    </div>
+
+    <div id="screen-parent" class="screen">
+        <div class="parent-header">
+            <button class="btn-back" onclick="showScreen('screen-profiles')">← Terug</button>
+            <h2>Ouder Dashboard</h2>
+        </div>
+        <div class="parent-tabs">
+            <button class="tab active" onclick="showParentTab('overview')">Overzicht</button>
+            <button class="tab" onclick="showParentTab('sebas')">Sebas</button>
+            <button class="tab" onclick="showParentTab('jonathan')">Jonathan</button>
+            <button class="tab" onclick="showParentTab('benjamin')">Benjamin</button>
+            <button class="tab" onclick="showParentTab('settings')">Instellingen</button>
+        </div>
+        <div class="parent-content" id="parent-content"></div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="js/data.js"></script>
+    <script src="js/lessons.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/sounds.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

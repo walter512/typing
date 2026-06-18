@@ -1,0 +1,1119 @@
+/* ===== TypeCraft - Minecraft-styled Typing Tutor ===== */
+
+@font-face {
+    font-family: 'Minecraft';
+    src: url('../assets/fonts/minecraft.woff2') format('woff2');
+    font-display: swap;
+}
+
+:root {
+    --bg-dark: #1a1a2e;
+    --bg-medium: #16213e;
+    --bg-light: #0f3460;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --green: #4caf50;
+    --green-dark: #388e3c;
+    --red: #f44336;
+    --gold: #ffc107;
+    --blue: #2196f3;
+    --purple: #9c27b0;
+    --diamond: #4dd0e1;
+    --wood: #8d6e63;
+    --stone: #9e9e9e;
+    --iron: #e0e0e0;
+    --dirt: #6d4c41;
+    --grass: #4caf50;
+
+    /* Biome colors */
+    --plains: #7cb342;
+    --forest: #2e7d32;
+    --desert: #f9a825;
+    --nether: #b71c1c;
+    --end: #4a148c;
+
+    --pixel-border: 4px;
+    --font-mc: 'Minecraft', 'Press Start 2P', 'Courier New', monospace;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-mc);
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow: hidden;
+    image-rendering: pixelated;
+}
+
+/* ===== Screen Management ===== */
+.screen {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* ===== Pixel Art Button Style ===== */
+.btn-minecraft {
+    font-family: var(--font-mc);
+    font-size: 14px;
+    padding: 12px 24px;
+    background: #555;
+    color: var(--text-primary);
+    border: 3px solid;
+    border-color: #888 #333 #333 #888;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.1s;
+    min-width: 280px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-minecraft:hover {
+    background: #666;
+    border-color: #999 #444 #444 #999;
+}
+
+.btn-minecraft:active {
+    background: #444;
+    border-color: #333 #888 #888 #333;
+}
+
+.btn-minecraft.btn-primary {
+    background: var(--green-dark);
+    border-color: var(--green) #2e6b30 #2e6b30 var(--green);
+}
+
+.btn-minecraft.btn-primary:hover {
+    background: var(--green);
+}
+
+.btn-icon {
+    font-size: 20px;
+    width: 28px;
+    text-align: center;
+    font-style: normal;
+}
+
+.btn-back {
+    font-family: var(--font-mc);
+    font-size: 12px;
+    padding: 8px 16px;
+    background: #444;
+    color: var(--text-primary);
+    border: 2px solid;
+    border-color: #666 #222 #222 #666;
+    cursor: pointer;
+}
+
+.btn-back:hover {
+    background: #555;
+}
+
+.btn-parent {
+    font-family: var(--font-mc);
+    font-size: 11px;
+    padding: 8px 20px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 2px solid #444;
+    cursor: pointer;
+    margin-top: 30px;
+}
+
+.btn-parent:hover {
+    background: #333;
+    color: var(--text-primary);
+}
+
+/* ===== Profile Selection Screen ===== */
+#screen-profiles {
+    justify-content: center;
+    gap: 30px;
+    background:
+        linear-gradient(180deg, rgba(26,26,46,0.95) 0%, rgba(10,22,40,0.98) 100%),
+        repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.02) 31px, rgba(255,255,255,0.02) 32px),
+        repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(255,255,255,0.02) 31px, rgba(255,255,255,0.02) 32px);
+}
+
+.title-banner {
+    text-align: center;
+}
+
+.title-banner h1 {
+    font-size: 48px;
+    color: var(--gold);
+    text-shadow:
+        3px 3px 0 #b8860b,
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+    letter-spacing: 4px;
+}
+
+.subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    letter-spacing: 2px;
+}
+
+.profile-cards {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.profile-card {
+    width: 200px;
+    padding: 24px 20px;
+    background: var(--bg-medium);
+    border: 4px solid;
+    border-color: #3a4a6e #0a1228 #0a1228 #3a4a6e;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.15s, background 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-card:hover {
+    transform: translateY(-4px);
+    background: var(--bg-light);
+    border-color: #4a5a8e #1a2238 #1a2238 #4a5a8e;
+}
+
+.profile-card h2 {
+    font-size: 18px;
+    color: #fff;
+}
+
+.age-badge {
+    font-size: 10px;
+    color: var(--text-secondary);
+    background: #333;
+    padding: 2px 8px;
+    border: 1px solid #555;
+}
+
+.player-level {
+    font-size: 11px;
+    color: var(--gold);
+    margin-top: 4px;
+}
+
+/* ===== Avatars (Minecraft pixel-art heads) ===== */
+.avatar {
+    width: 64px;
+    height: 64px;
+    image-rendering: pixelated;
+    border: 3px solid #555;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Sebas - Diamond armor Steve-like head */
+.avatar-sebas {
+    background: #4dd0e1;
+    box-shadow: inset 0 0 0 8px #4dd0e1, inset 8px 8px 0 0 #00838f;
+    background:
+        linear-gradient(180deg,
+            #795548 0%, #795548 35%,
+            #d7a98c 35%, #d7a98c 55%,
+            #fff 55%, #fff 60%,
+            #d7a98c 60%, #d7a98c 80%,
+            #4dd0e1 80%, #4dd0e1 100%);
+}
+
+/* Jonathan - Orange hoodie like Alex */
+.avatar-jonathan {
+    background:
+        linear-gradient(180deg,
+            #ff9800 0%, #ff9800 35%,
+            #d7a98c 35%, #d7a98c 55%,
+            #fff 55%, #fff 60%,
+            #d7a98c 60%, #d7a98c 80%,
+            #2196f3 80%, #2196f3 100%);
+}
+
+/* Benjamin - Red & yellow builder */
+.avatar-benjamin {
+    background:
+        linear-gradient(180deg,
+            #f44336 0%, #f44336 35%,
+            #d7a98c 35%, #d7a98c 55%,
+            #333 55%, #333 60%,
+            #d7a98c 60%, #d7a98c 80%,
+            #ffeb3b 80%, #ffeb3b 100%);
+}
+
+/* Eye dots on avatars */
+.avatar::before,
+.avatar::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    top: 38%;
+}
+.avatar::before { left: 30%; }
+.avatar::after { right: 30%; }
+
+.bottom-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.btn-sound {
+    border-color: #555;
+}
+
+/* ===== Player Menu Screen ===== */
+#screen-menu {
+    padding: 20px;
+    gap: 20px;
+    background: var(--bg-dark);
+}
+
+.menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+}
+
+.player-info {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 14px;
+}
+
+#menu-player-level {
+    color: var(--gold);
+}
+
+.menu-biome {
+    width: 100%;
+    max-width: 800px;
+    background: var(--bg-medium);
+    border: 3px solid;
+    border-color: #3a4a6e #0a1228 #0a1228 #3a4a6e;
+    padding: 20px;
+    text-align: center;
+}
+
+.biome-title {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.biome-progress {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.menu-stats {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.stat-box {
+    background: var(--bg-medium);
+    border: 2px solid #333;
+    padding: 16px 24px;
+    text-align: center;
+    min-width: 120px;
+}
+
+.stat-value {
+    font-size: 24px;
+    color: var(--gold);
+}
+
+.stat-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+/* ===== Typing Lesson Screen ===== */
+#screen-lesson {
+    padding: 0;
+    background: var(--bg-dark);
+}
+
+.lesson-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 12px 20px;
+    background: var(--bg-medium);
+    border-bottom: 3px solid #333;
+    gap: 16px;
+}
+
+.lesson-info {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+}
+
+.biome-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border: 1px solid;
+    border-radius: 0;
+}
+
+.biome-badge.plains { background: var(--plains); color: #000; border-color: #5a8a2a; }
+.biome-badge.forest { background: var(--forest); color: #fff; border-color: #1b5e20; }
+.biome-badge.desert { background: var(--desert); color: #000; border-color: #f57f17; }
+.biome-badge.nether { background: var(--nether); color: #fff; border-color: #7f0000; }
+.biome-badge.end { background: var(--end); color: #fff; border-color: #12005e; }
+
+.lesson-stats-bar {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+}
+
+#live-wpm { color: var(--blue); }
+#live-accuracy { color: var(--green); }
+#live-timer { color: var(--text-secondary); }
+
+.lesson-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.mob-area {
+    height: 80px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 48px;
+}
+
+.text-display {
+    width: 100%;
+    min-height: 120px;
+    background: var(--bg-medium);
+    border: 3px solid;
+    border-color: #3a4a6e #0a1228 #0a1228 #3a4a6e;
+    padding: 24px;
+    font-size: 22px;
+    line-height: 1.8;
+    letter-spacing: 2px;
+    text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+}
+
+.text-display .char {
+    display: inline-block;
+    padding: 2px 1px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.1s;
+}
+
+.text-display .char.current {
+    background: rgba(255, 193, 7, 0.3);
+    border-bottom-color: var(--gold);
+    animation: blink-cursor 0.8s infinite;
+}
+
+.text-display .char.correct {
+    color: var(--green);
+}
+
+.text-display .char.incorrect {
+    color: var(--red);
+    background: rgba(244, 67, 54, 0.2);
+    text-decoration: underline;
+}
+
+.text-display .char.pending {
+    color: var(--text-secondary);
+}
+
+@keyframes blink-cursor {
+    0%, 100% { border-bottom-color: var(--gold); }
+    50% { border-bottom-color: transparent; }
+}
+
+#typing-input {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+}
+
+/* ===== Visual Keyboard ===== */
+.keyboard-visual {
+    width: 100%;
+    max-width: 750px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+}
+
+.keyboard-row {
+    display: flex;
+    gap: 4px;
+}
+
+.key {
+    width: 48px;
+    height: 42px;
+    background: #444;
+    border: 2px solid;
+    border-color: #666 #222 #222 #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mc);
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    transition: all 0.1s;
+}
+
+.key.finger-left-pinky { border-bottom: 3px solid #e91e63; }
+.key.finger-left-ring { border-bottom: 3px solid #ff5722; }
+.key.finger-left-middle { border-bottom: 3px solid #ff9800; }
+.key.finger-left-index { border-bottom: 3px solid #ffc107; }
+.key.finger-right-index { border-bottom: 3px solid #4caf50; }
+.key.finger-right-middle { border-bottom: 3px solid #2196f3; }
+.key.finger-right-ring { border-bottom: 3px solid #3f51b5; }
+.key.finger-right-pinky { border-bottom: 3px solid #9c27b0; }
+.key.finger-thumb { border-bottom: 3px solid #607d8b; }
+
+.key.active {
+    background: var(--gold);
+    color: #000;
+    border-color: #ffecb3 #b8860b #b8860b #ffecb3;
+    transform: translateY(1px);
+}
+
+.key.error {
+    background: var(--red);
+    color: #fff;
+}
+
+.key.space-bar {
+    width: 300px;
+}
+
+.key.wide {
+    width: 72px;
+    font-size: 10px;
+}
+
+.key.extra-wide {
+    width: 96px;
+    font-size: 10px;
+}
+
+/* ===== Lesson Progress Bar ===== */
+.lesson-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #222;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--green);
+    width: 0%;
+    transition: width 0.3s;
+}
+
+/* ===== Results Screen ===== */
+#screen-results {
+    justify-content: center;
+    background: var(--bg-dark);
+}
+
+.results-container {
+    max-width: 600px;
+    width: 100%;
+    padding: 40px;
+    text-align: center;
+}
+
+.results-container h2 {
+    font-size: 28px;
+    color: var(--gold);
+    margin-bottom: 30px;
+}
+
+.results-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.result-stat {
+    background: var(--bg-medium);
+    border: 2px solid #333;
+    padding: 16px 20px;
+    min-width: 110px;
+}
+
+.result-value {
+    font-size: 28px;
+    color: var(--gold);
+}
+
+.result-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.results-resources {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.resource-item {
+    background: var(--bg-medium);
+    border: 2px solid #555;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.resource-icon {
+    font-size: 20px;
+}
+
+.results-achievements {
+    margin-bottom: 16px;
+}
+
+.achievement {
+    background: linear-gradient(90deg, rgba(255,193,7,0.1), transparent);
+    border-left: 3px solid var(--gold);
+    padding: 8px 16px;
+    margin: 8px 0;
+    font-size: 12px;
+    text-align: left;
+    color: var(--gold);
+}
+
+.results-keys {
+    margin-bottom: 24px;
+}
+
+.problem-key {
+    display: inline-block;
+    background: rgba(244,67,54,0.2);
+    border: 1px solid var(--red);
+    padding: 4px 10px;
+    margin: 4px;
+    font-size: 12px;
+    color: var(--red);
+}
+
+.results-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+/* ===== Inventory Screen ===== */
+#screen-inventory {
+    padding: 20px;
+    gap: 20px;
+}
+
+.inventory-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 800px;
+}
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 56px);
+    gap: 4px;
+    max-width: 800px;
+}
+
+.inv-slot {
+    width: 56px;
+    height: 56px;
+    background: #333;
+    border: 2px solid;
+    border-color: #555 #222 #222 #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    position: relative;
+}
+
+.inv-slot .count {
+    position: absolute;
+    bottom: 1px;
+    right: 3px;
+    font-size: 9px;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+}
+
+/* ===== Family Scoreboard ===== */
+#screen-family {
+    padding: 20px;
+    gap: 20px;
+}
+
+.family-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 800px;
+}
+
+.family-streak {
+    width: 100%;
+    max-width: 800px;
+    background: var(--bg-medium);
+    border: 3px solid #333;
+    padding: 20px;
+    text-align: center;
+}
+
+.family-scores {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.family-score-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-medium);
+    border: 2px solid #333;
+    padding: 16px 20px;
+}
+
+.family-score-card .player-name {
+    font-size: 14px;
+}
+
+.family-score-card .improvement {
+    color: var(--green);
+    font-size: 12px;
+}
+
+.shared-build {
+    width: 100%;
+    max-width: 800px;
+    background: var(--bg-medium);
+    border: 3px solid #333;
+    padding: 20px;
+    text-align: center;
+}
+
+.build-grid {
+    display: grid;
+    grid-template-columns: repeat(16, 24px);
+    grid-template-rows: repeat(8, 24px);
+    gap: 1px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.build-block {
+    width: 24px;
+    height: 24px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.build-block.filled {
+    border-color: rgba(255,255,255,0.3);
+}
+
+/* ===== Parent Dashboard ===== */
+#screen-parent-login {
+    justify-content: center;
+    background: var(--bg-dark);
+}
+
+.parent-login-box {
+    text-align: center;
+    padding: 40px;
+    background: var(--bg-medium);
+    border: 3px solid #333;
+    max-width: 400px;
+    width: 100%;
+}
+
+.parent-login-box h2 {
+    margin-bottom: 16px;
+}
+
+.parent-login-box p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+#parent-pin {
+    font-family: var(--font-mc);
+    font-size: 24px;
+    text-align: center;
+    padding: 12px;
+    width: 120px;
+    background: #222;
+    color: var(--text-primary);
+    border: 2px solid #555;
+    letter-spacing: 8px;
+}
+
+.pin-hint {
+    font-size: 10px;
+    color: #666;
+    margin-top: 12px;
+}
+
+#screen-parent {
+    padding: 20px;
+    gap: 16px;
+    background: var(--bg-dark);
+}
+
+.parent-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 900px;
+}
+
+.parent-tabs {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+    max-width: 900px;
+    overflow-x: auto;
+}
+
+.tab {
+    font-family: var(--font-mc);
+    font-size: 11px;
+    padding: 8px 16px;
+    background: #333;
+    color: var(--text-secondary);
+    border: 2px solid #444;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.tab.active {
+    background: var(--bg-light);
+    color: var(--text-primary);
+    border-color: var(--blue);
+}
+
+.tab:hover {
+    background: #444;
+}
+
+.parent-content {
+    width: 100%;
+    max-width: 900px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.dash-card {
+    background: var(--bg-medium);
+    border: 2px solid #333;
+    padding: 20px;
+}
+
+.dash-card h3 {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+.dash-card .big-number {
+    font-size: 32px;
+    color: var(--gold);
+}
+
+.dash-card .trend {
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.trend.up { color: var(--green); }
+.trend.down { color: var(--red); }
+
+/* Heatmap keyboard in dashboard */
+.heatmap-keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.heatmap-row {
+    display: flex;
+    gap: 3px;
+}
+
+.heatmap-key {
+    width: 36px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-family: var(--font-mc);
+    border: 1px solid #555;
+    transition: all 0.3s;
+}
+
+/* Week schedule in dashboard */
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    gap: 2px;
+    font-size: 10px;
+    margin-top: 12px;
+}
+
+.schedule-cell {
+    padding: 6px 4px;
+    text-align: center;
+    background: var(--bg-dark);
+    border: 1px solid #333;
+}
+
+.schedule-cell.header {
+    background: var(--bg-light);
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.schedule-cell.done {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: var(--green);
+}
+
+.schedule-cell.missed {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: var(--red);
+}
+
+/* ===== Daily Challenge ===== */
+#screen-daily {
+    padding: 20px;
+    gap: 20px;
+}
+
+.daily-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 800px;
+}
+
+.daily-content {
+    width: 100%;
+    max-width: 800px;
+    text-align: center;
+}
+
+/* ===== Toast Notification ===== */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-medium);
+    border: 3px solid var(--gold);
+    padding: 12px 24px;
+    font-family: var(--font-mc);
+    font-size: 12px;
+    color: var(--gold);
+    z-index: 1000;
+    transition: transform 0.3s;
+    pointer-events: none;
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ===== Block mining animation ===== */
+@keyframes mine-block {
+    0% { transform: scale(1); }
+    25% { transform: scale(0.9) rotate(-2deg); }
+    50% { transform: scale(1.1) rotate(2deg); }
+    75% { transform: scale(0.95); }
+    100% { transform: scale(1); opacity: 0; }
+}
+
+@keyframes float-up {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-40px); opacity: 0; }
+}
+
+.block-particle {
+    position: fixed;
+    font-size: 16px;
+    pointer-events: none;
+    animation: float-up 0.8s ease-out forwards;
+    z-index: 100;
+}
+
+/* ===== XP bar ===== */
+.xp-section {
+    width: 100%;
+    max-width: 800px;
+}
+
+.xp-label {
+    font-size: 10px;
+    color: var(--green);
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.xp-bar {
+    width: 100%;
+    height: 14px;
+    background: #222;
+    border: 2px solid;
+    border-color: #111 #444 #444 #111;
+}
+
+.xp-fill {
+    height: 100%;
+    background: linear-gradient(180deg, #66bb6a, #388e3c);
+    transition: width 0.5s;
+}
+
+/* ===== Mob health bar ===== */
+.mob-display {
+    text-align: center;
+}
+
+.mob-sprite {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+
+.mob-health-bar {
+    width: 200px;
+    height: 8px;
+    background: #333;
+    border: 1px solid #555;
+    margin: 0 auto;
+}
+
+.mob-health-fill {
+    height: 100%;
+    background: var(--red);
+    transition: width 0.3s;
+}
+
+.mob-name {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ===== Scrollbar styling ===== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #444;
+    border: 1px solid #555;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
