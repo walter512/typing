@@ -1249,6 +1249,50 @@ body {
     border-color: var(--red);
 }
 
+/* ===== Month Overview Table ===== */
+.month-overview-table {
+    margin-top: 8px;
+}
+
+.mo-row {
+    display: grid;
+    grid-template-columns: 110px 90px 80px 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 8px;
+    border-bottom: 1px solid #333;
+}
+
+.mo-row.mo-header {
+    font-size: 9px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.2);
+}
+
+.mo-cell {
+    font-size: 12px;
+    font-family: var(--font-mc);
+}
+
+.mo-name {
+    color: var(--text-primary);
+}
+
+.mo-goal-bar {
+    height: 10px;
+    background: #222;
+    border: 1px solid #444;
+    margin-bottom: 4px;
+}
+
+.mo-goal-fill {
+    height: 100%;
+    transition: width 0.5s;
+}
+
 /* ===== Daily Challenge ===== */
 #screen-daily {
     padding: 20px;

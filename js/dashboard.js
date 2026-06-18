@@ -77,38 +77,57 @@ async function renderOverview() {
 
     html += '</div>';
 
-    // Weekly schedule
-    html += '<div class="dash-card" style="margin-top:16px"><h3>Weekoverzicht</h3>';
-    html += renderWeekSchedule(players, allSessions);
+    // Monthly overview: simple input/output per child
+    html += '<div class="dash-card" style="margin-top:16px"><h3>Maandoverzicht</h3>';
+    html += await renderMonthOverview(players, allSessions);
     html += '</div>';
 
     return html;
 }
 
-function renderWeekSchedule(players, sessions) {
+async function renderMonthOverview(players, sessions) {
     const today = new Date();
-    const dayNames = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const monthNames = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
+    const monthStart = `${year}-${String(month+1).padStart(2,'0')}-01`;
 
-    let html = '<div class="schedule-grid">';
+    let html = `<div style="font-size:12px; color:var(--gold); margin-bottom:16px">${monthNames[month]} ${year}</div>`;
+
+    html += '<div class="month-overview-table">';
 
     // Header
-    html += '<div class="schedule-cell header">Speler</div>';
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        html += `<div class="schedule-cell header">${dayNames[d.getDay()]}<br>${d.getDate()}</div>`;
-    }
+    html += `<div class="mo-row mo-header">
+        <div class="mo-cell mo-name">Speler</div>
+        <div class="mo-cell">Minuten</div>
+        <div class="mo-cell">Sessies</div>
+        <div class="mo-cell">Voortgang</div>
+    </div>`;
 
-    // Player rows
     for (const player of players) {
-        html += `<div class="schedule-cell header">${player.name}</div>`;
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
-            const practiced = sessions.some(s => s.playerId === player.id && s.date === dateStr);
-            html += `<div class="schedule-cell ${practiced ? 'done' : (i > 0 ? 'missed' : '')}">${practiced ? '✅' : (i > 0 ? '—' : '')}</div>`;
-        }
+        const playerSessions = sessions.filter(s => s.playerId === player.id && s.date >= monthStart);
+        const totalMinutes = Math.round(playerSessions.reduce((sum, s) => sum + (s.duration || s.minutes || 0), 0));
+        const sessionCount = playerSessions.length;
+
+        // Calculate goal percentage: target WPM for blind typing
+        const targetWpm = player.age <= 8 ? 30 : player.age <= 11 ? 45 : 60;
+        const goalPct = Math.min(100, Math.round((player.bestWpm / targetWpm) * 100));
+
+        // Color based on progress
+        const goalColor = goalPct >= 75 ? 'var(--green)' : goalPct >= 40 ? 'var(--gold)' : 'var(--red)';
+        const minuteColor = totalMinutes >= 120 ? 'var(--green)' : totalMinutes >= 60 ? 'var(--gold)' : 'var(--text-secondary)';
+
+        html += `<div class="mo-row">
+            <div class="mo-cell mo-name">${player.name}</div>
+            <div class="mo-cell" style="color:${minuteColor}">${totalMinutes} min</div>
+            <div class="mo-cell">${sessionCount}x</div>
+            <div class="mo-cell">
+                <div class="mo-goal-bar">
+                    <div class="mo-goal-fill" style="width:${goalPct}%; background:${goalColor}"></div>
+                </div>
+                <span style="color:${goalColor}; font-size:11px">${goalPct}%</span>
+            </div>
+        </div>`;
     }
 
     html += '</div>';
@@ -297,12 +316,34 @@ function renderKeyboardHeatmap(keyErrors) {
 function renderSettings() {
     return `
         <div class="dash-card">
+            <h3>Versie & Updates</h3>
+            <div style="font-size:11px; color:var(--text-secondary); margin-top:8px">
+                <div>TypeCraft versie: <span style="color:var(--gold)">1.1.0</span></div>
+                <div style="margin-top:6px; font-size:10px; color:#666">
+                    Updates installeren: vervang de bestanden in de typing-map.<br>
+                    Alle voortgang blijft bewaard (opgeslagen in browser).
+                </div>
+            </div>
+        </div>
+        <div class="dash-card" style="margin-top:16px">
             <h3>PIN Wijzigen</h3>
-            <p style="font-size:11px; color:var(--text-secondary); margin-bottom:12px">
-                Huidige PIN: 1234 (standaard)
-            </p>
             <p style="font-size:10px; color:#666">
                 PIN wijzigen wordt in een volgende versie toegevoegd.
+            </p>
+        </div>
+        <div class="dash-card" style="margin-top:16px">
+            <h3>Data Backup</h3>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px">
+                <button class="btn-minecraft" onclick="exportData()" style="min-width:auto">
+                    📦 Exporteer Backup
+                </button>
+                <button class="btn-minecraft" onclick="document.getElementById('import-file').click()" style="min-width:auto">
+                    📥 Importeer Backup
+                </button>
+                <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
+            </div>
+            <p style="font-size:10px; color:#666; margin-top:8px">
+                Maak regelmatig een backup vóór updates.
             </p>
         </div>
         <div class="dash-card" style="margin-top:16px">
@@ -312,23 +353,6 @@ function renderSettings() {
                 <div style="margin:8px 0">Jonathan: ${PLAYERS.jonathan.sessionMinutes} minuten</div>
                 <div style="margin:8px 0">Benjamin: ${PLAYERS.benjamin.sessionMinutes} minuten</div>
             </div>
-        </div>
-        <div class="dash-card" style="margin-top:16px">
-            <h3>Handicap Multipliers</h3>
-            <div style="font-size:11px; color:var(--text-secondary); margin-top:8px">
-                <div style="margin:6px 0">Sebas: ${PLAYERS.sebas.handicap}x (geen handicap)</div>
-                <div style="margin:6px 0">Jonathan: ${PLAYERS.jonathan.handicap}x</div>
-                <div style="margin:6px 0">Benjamin: ${PLAYERS.benjamin.handicap}x</div>
-            </div>
-            <p style="font-size:10px; color:#666; margin-top:12px">
-                Handicaps zorgen ervoor dat jongere spelers eerlijk kunnen concurreren.
-            </p>
-        </div>
-        <div class="dash-card" style="margin-top:16px">
-            <h3>Data Exporteren</h3>
-            <button class="btn-minecraft" onclick="exportData()" style="min-width:auto; margin-top:8px">
-                📦 Exporteer als JSON
-            </button>
         </div>
         <div class="dash-card" style="margin-top:16px">
             <h3>⚠️ Data Resetten</h3>
@@ -354,6 +378,49 @@ async function exportData() {
     a.click();
     URL.revokeObjectURL(url);
     showToast('Data geëxporteerd!');
+}
+
+async function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        if (!data.players || !data.sessions) {
+            showToast('❌ Ongeldig backup bestand');
+            return;
+        }
+
+        if (!confirm(`Backup importeren van ${data.exportedAt || 'onbekend'}?\nDit overschrijft bestaande data!`)) {
+            input.value = '';
+            return;
+        }
+
+        // Import players
+        for (const player of data.players) {
+            await savePlayer(player);
+        }
+
+        // Import sessions
+        const d = await openDB();
+        for (const session of data.sessions) {
+            await new Promise((resolve, reject) => {
+                const tx = d.transaction('sessions', 'readwrite');
+                tx.objectStore('sessions').put(session);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        showToast('✅ Backup geïmporteerd!');
+        input.value = '';
+        renderParentDashboard('settings');
+    } catch (e) {
+        showToast('❌ Fout bij importeren: ' + e.message);
+        input.value = '';
+    }
 }
 
 function confirmResetData() {
