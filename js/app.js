@@ -53,6 +53,77 @@ function updateMenuScreen() {
     document.getElementById('menu-xp-next').textContent = levelInfo.xpToNext;
     const xpPct = Math.round((levelInfo.currentXp / levelInfo.xpToNext) * 100);
     document.getElementById('menu-xp-fill').style.width = xpPct + '%';
+
+    // Journey map
+    renderJourneyMap(currentPlayer);
+}
+
+function renderJourneyMap(player) {
+    const container = document.getElementById('journey-map');
+    const totalAllLessons = getTotalLessons();
+
+    // Calculate completed lessons across all biomes
+    let completedLessons = 0;
+    for (let b = 0; b < player.currentBiome; b++) {
+        completedLessons += LESSON_SETS[b].lessons.length;
+    }
+    completedLessons += player.currentLesson;
+
+    const overallPct = Math.round((completedLessons / totalAllLessons) * 100);
+
+    const biomeIcons = ['🌿', '🌲', '🏜️', '🔥', '🐉'];
+    const biomeTargetWpm = [15, 25, 35, 45, 60];
+    const playerAge = player.age;
+    const targetWpm = playerAge <= 8 ? 30 : playerAge <= 11 ? 45 : 60;
+
+    let html = '';
+    html += `<div class="journey-title">Reis naar Blind Typen</div>`;
+    html += `<div class="journey-overall">`;
+    html += `<div class="journey-overall-pct">${overallPct}%</div>`;
+    html += `<div class="journey-overall-label">Les ${completedLessons} van ${totalAllLessons} voltooid</div>`;
+    html += `</div>`;
+
+    // Biome track
+    html += `<div class="journey-track">`;
+    for (let i = 0; i < BIOMES.length; i++) {
+        const b = BIOMES[i];
+        const isCompleted = i < player.currentBiome;
+        const isCurrent = i === player.currentBiome;
+        const isLocked = i > player.currentBiome;
+        const stateClass = isCompleted ? 'completed' : isCurrent ? 'current' : 'locked';
+
+        html += `<div class="journey-biome">`;
+        html += `<div class="journey-node ${stateClass}" style="background:${isLocked ? '#222' : b.color + '33'}">${biomeIcons[i]}</div>`;
+        html += `<div class="journey-biome-name ${stateClass}">${b.name}</div>`;
+
+        // Lesson dots for current biome
+        if (isCurrent) {
+            const lessons = LESSON_SETS[i].lessons;
+            html += `<div class="journey-lesson-dots">`;
+            for (let l = 0; l < lessons.length; l++) {
+                const dotClass = l < player.currentLesson ? 'done' : l === player.currentLesson ? 'current' : '';
+                html += `<div class="journey-dot ${dotClass}"></div>`;
+            }
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+
+        // Connector between biomes
+        if (i < BIOMES.length - 1) {
+            const connClass = isCompleted ? 'completed' : isCurrent ? 'active' : '';
+            html += `<div class="journey-connector ${connClass}"></div>`;
+        }
+    }
+    html += `</div>`;
+
+    // End goal
+    html += `<div class="journey-goal">`;
+    html += `<div class="journey-goal-text">🏆 Einddoel: Blind typen met ${targetWpm}+ WPM</div>`;
+    html += `<div class="journey-goal-sub">Nu: ${player.bestWpm} WPM → Nog ${Math.max(0, targetWpm - player.bestWpm)} WPM te gaan</div>`;
+    html += `</div>`;
+
+    container.innerHTML = html;
 }
 
 /* ===== Start Lesson ===== */

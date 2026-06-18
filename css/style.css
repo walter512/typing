@@ -33,7 +33,7 @@
     --end: #4a148c;
 
     --pixel-border: 4px;
-    --font-mc: 'Minecraft', 'Press Start 2P', 'Courier New', monospace;
+    --font-mc: 'Press Start 2P', 'Minecraft', 'Courier New', monospace;
 }
 
 * {
@@ -68,40 +68,61 @@ body {
 /* ===== Pixel Art Button Style ===== */
 .btn-minecraft {
     font-family: var(--font-mc);
-    font-size: 14px;
-    padding: 12px 24px;
-    background: #555;
+    font-size: 11px;
+    padding: 14px 24px;
+    background: linear-gradient(180deg, #666 0%, #555 40%, #444 100%);
     color: var(--text-primary);
     border: 3px solid;
     border-color: #888 #333 #333 #888;
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 1px;
-    transition: all 0.1s;
-    min-width: 280px;
+    transition: all 0.15s;
+    min-width: 300px;
     text-align: left;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-minecraft::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+    transition: left 0.4s;
+}
+
+.btn-minecraft:hover::after {
+    left: 100%;
 }
 
 .btn-minecraft:hover {
-    background: #666;
+    background: linear-gradient(180deg, #777 0%, #666 40%, #555 100%);
     border-color: #999 #444 #444 #999;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .btn-minecraft:active {
-    background: #444;
+    background: linear-gradient(180deg, #444 0%, #555 100%);
     border-color: #333 #888 #888 #333;
+    transform: translateY(1px);
+    box-shadow: none;
 }
 
 .btn-minecraft.btn-primary {
-    background: var(--green-dark);
-    border-color: var(--green) #2e6b30 #2e6b30 var(--green);
+    background: linear-gradient(180deg, var(--green) 0%, var(--green-dark) 40%, #2e6b30 100%);
+    border-color: #66bb6a #2e6b30 #2e6b30 #66bb6a;
+    box-shadow: 0 0 12px rgba(76,175,80,0.2);
 }
 
 .btn-minecraft.btn-primary:hover {
-    background: var(--green);
+    background: linear-gradient(180deg, #66bb6a 0%, var(--green) 40%, var(--green-dark) 100%);
+    box-shadow: 0 4px 20px rgba(76,175,80,0.3);
 }
 
 .btn-icon {
@@ -145,34 +166,89 @@ body {
 /* ===== Profile Selection Screen ===== */
 #screen-profiles {
     justify-content: center;
-    gap: 30px;
+    gap: 24px;
+    padding: 40px 20px;
+    background: var(--bg-dark);
+    position: relative;
+    overflow: hidden;
+}
+
+#screen-profiles::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
     background:
-        linear-gradient(180deg, rgba(26,26,46,0.95) 0%, rgba(10,22,40,0.98) 100%),
-        repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.02) 31px, rgba(255,255,255,0.02) 32px),
-        repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(255,255,255,0.02) 31px, rgba(255,255,255,0.02) 32px);
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4), transparent),
+        radial-gradient(1px 1px at 25% 60%, rgba(255,255,255,0.3), transparent),
+        radial-gradient(1px 1px at 40% 15%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 55% 80%, rgba(255,255,255,0.25), transparent),
+        radial-gradient(1px 1px at 70% 35%, rgba(255,255,255,0.4), transparent),
+        radial-gradient(1px 1px at 85% 70%, rgba(255,255,255,0.35), transparent),
+        radial-gradient(1px 1px at 15% 85%, rgba(255,255,255,0.3), transparent),
+        radial-gradient(1px 1px at 60% 45%, rgba(255,255,255,0.45), transparent),
+        radial-gradient(1px 1px at 90% 10%, rgba(255,255,255,0.3), transparent),
+        radial-gradient(1px 1px at 35% 90%, rgba(255,255,255,0.2), transparent),
+        radial-gradient(2px 2px at 5% 50%, rgba(255,193,7,0.4), transparent),
+        radial-gradient(2px 2px at 95% 45%, rgba(77,208,225,0.3), transparent);
+    animation: stars-drift 60s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes stars-drift {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-20px); }
+}
+
+/* Grass block ground on profile screen */
+#screen-profiles::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background:
+        linear-gradient(180deg, var(--grass) 0%, var(--grass) 30%, var(--dirt) 30%, var(--dirt) 100%);
+    opacity: 0.15;
+    pointer-events: none;
 }
 
 .title-banner {
     text-align: center;
+    animation: title-drop 0.6s ease-out;
+}
+
+@keyframes title-drop {
+    0% { transform: translateY(-30px); opacity: 0; }
+    60% { transform: translateY(5px); }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
 .title-banner h1 {
-    font-size: 48px;
+    font-size: 42px;
     color: var(--gold);
     text-shadow:
         3px 3px 0 #b8860b,
+        6px 6px 0 rgba(0,0,0,0.3),
         -1px -1px 0 #000,
         1px -1px 0 #000,
         -1px 1px 0 #000,
-        1px 1px 0 #000;
+        1px 1px 0 #000,
+        0 0 20px rgba(255,193,7,0.3),
+        0 0 40px rgba(255,193,7,0.1);
     letter-spacing: 4px;
+    animation: title-glow 3s infinite alternate;
+}
+
+@keyframes title-glow {
+    0% { text-shadow: 3px 3px 0 #b8860b, 6px 6px 0 rgba(0,0,0,0.3), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 20px rgba(255,193,7,0.2); }
+    100% { text-shadow: 3px 3px 0 #b8860b, 6px 6px 0 rgba(0,0,0,0.3), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 40px rgba(255,193,7,0.5), 0 0 80px rgba(255,193,7,0.15); }
 }
 
 .subtitle {
-    font-size: 12px;
+    font-size: 10px;
     color: var(--text-secondary);
-    margin-top: 8px;
-    letter-spacing: 2px;
+    margin-top: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
 }
 
 .profile-cards {
@@ -190,36 +266,53 @@ body {
     border-color: #3a4a6e #0a1228 #0a1228 #3a4a6e;
     cursor: pointer;
     text-align: center;
-    transition: transform 0.15s, background 0.15s;
+    transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    animation: card-appear 0.5s ease-out backwards;
+}
+
+.profile-card:nth-child(1) { animation-delay: 0.1s; }
+.profile-card:nth-child(2) { animation-delay: 0.25s; }
+.profile-card:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes card-appear {
+    0% { transform: translateY(20px) scale(0.9); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .profile-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px) scale(1.03);
     background: var(--bg-light);
     border-color: #4a5a8e #1a2238 #1a2238 #4a5a8e;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 15px rgba(255,193,7,0.15);
+}
+
+.profile-card:active {
+    transform: translateY(-2px) scale(0.98);
 }
 
 .profile-card h2 {
-    font-size: 18px;
+    font-size: 16px;
     color: #fff;
+    text-shadow: 1px 1px 0 #000;
 }
 
 .age-badge {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text-secondary);
     background: #333;
-    padding: 2px 8px;
+    padding: 3px 10px;
     border: 1px solid #555;
 }
 
 .player-level {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--gold);
     margin-top: 4px;
+    text-shadow: 0 0 8px rgba(255,193,7,0.3);
 }
 
 /* ===== Avatars (Minecraft pixel-art heads) ===== */
@@ -290,10 +383,169 @@ body {
     border-color: #555;
 }
 
+/* ===== Journey Map ===== */
+.journey-map {
+    width: 100%;
+    max-width: 800px;
+    background: var(--bg-medium);
+    border: 3px solid;
+    border-color: #3a4a6e #0a1228 #0a1228 #3a4a6e;
+    padding: 16px 20px;
+    position: relative;
+}
+
+.journey-title {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.journey-overall {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.journey-overall-pct {
+    font-size: 28px;
+    color: var(--gold);
+}
+
+.journey-overall-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.journey-track {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: relative;
+    margin: 12px 0 8px;
+}
+
+.journey-biome {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.journey-node {
+    width: 40px;
+    height: 40px;
+    border-radius: 0;
+    border: 3px solid #555;
+    margin: 0 auto 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.journey-node.completed {
+    border-color: var(--green);
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.journey-node.current {
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(255, 193, 7, 0.5);
+    animation: pulse-glow 2s infinite;
+}
+
+.journey-node.locked {
+    opacity: 0.35;
+    border-color: #333;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 8px rgba(255, 193, 7, 0.3); }
+    50% { box-shadow: 0 0 16px rgba(255, 193, 7, 0.7); }
+}
+
+.journey-biome-name {
+    font-size: 9px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.journey-biome-name.current {
+    color: var(--gold);
+}
+
+.journey-biome-name.completed {
+    color: var(--green);
+}
+
+.journey-connector {
+    flex: 0.5;
+    height: 4px;
+    background: #333;
+    position: relative;
+    z-index: 0;
+    margin-top: -20px;
+}
+
+.journey-connector.completed {
+    background: var(--green);
+}
+
+.journey-connector.active {
+    background: linear-gradient(90deg, var(--green), var(--gold));
+}
+
+.journey-goal {
+    text-align: center;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #333;
+}
+
+.journey-goal-text {
+    font-size: 11px;
+    color: var(--diamond);
+}
+
+.journey-goal-sub {
+    font-size: 9px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.journey-lesson-dots {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.journey-dot {
+    width: 6px;
+    height: 6px;
+    background: #333;
+    border: 1px solid #555;
+}
+
+.journey-dot.done {
+    background: var(--green);
+    border-color: var(--green);
+}
+
+.journey-dot.current {
+    background: var(--gold);
+    border-color: var(--gold);
+}
+
 /* ===== Player Menu Screen ===== */
 #screen-menu {
     padding: 20px;
-    gap: 20px;
+    gap: 16px;
     background: var(--bg-dark);
 }
 
@@ -470,16 +722,24 @@ body {
 
 .text-display .char.correct {
     color: var(--green);
+    text-shadow: 0 0 6px rgba(76,175,80,0.3);
 }
 
 .text-display .char.incorrect {
     color: var(--red);
-    background: rgba(244, 67, 54, 0.2);
+    background: rgba(244, 67, 54, 0.25);
     text-decoration: underline;
+    animation: shake-char 0.3s;
+}
+
+@keyframes shake-char {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
 }
 
 .text-display .char.pending {
-    color: var(--text-secondary);
+    color: #555;
 }
 
 @keyframes blink-cursor {

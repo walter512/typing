@@ -122,7 +122,65 @@ async function renderPlayerDetail(playerId) {
     const sessions = await getPlayerSessions(playerId);
     const biome = BIOMES[player.currentBiome] || BIOMES[0];
 
-    let html = '<div class="dashboard-cards">';
+    // Calculate goal progress
+    const totalAllLessons = getTotalLessons();
+    let completedLessons = 0;
+    for (let b = 0; b < player.currentBiome; b++) {
+        completedLessons += LESSON_SETS[b].lessons.length;
+    }
+    completedLessons += player.currentLesson;
+    const overallPct = Math.round((completedLessons / totalAllLessons) * 100);
+
+    const targetWpm = player.age <= 8 ? 30 : player.age <= 11 ? 45 : 60;
+    const wpmPct = Math.min(100, Math.round((player.bestWpm / targetWpm) * 100));
+
+    // Time-based expected progress (12 months from creation)
+    const createdDate = new Date(player.createdAt);
+    const now = new Date();
+    const monthsElapsed = Math.max(0, (now - createdDate) / (1000 * 60 * 60 * 24 * 30));
+    const expectedPct = Math.min(100, Math.round((monthsElapsed / 12) * 100));
+    const onTrack = overallPct >= expectedPct - 10;
+
+    let html = '';
+
+    // Goal tracker card (full width)
+    html += `
+        <div class="dash-card" style="margin-bottom:16px">
+            <h3>🏆 Einddoel: Blind Typen</h3>
+            <div style="display:flex; gap:24px; margin-top:12px; flex-wrap:wrap">
+                <div style="flex:1; min-width:200px">
+                    <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px">Lesvoortgang</div>
+                    <div style="display:flex; align-items:center; gap:8px">
+                        <div style="flex:1; height:16px; background:#222; border:1px solid #444">
+                            <div style="height:100%; width:${overallPct}%; background:linear-gradient(90deg, var(--green), var(--diamond)); transition:width 0.5s"></div>
+                        </div>
+                        <span style="font-size:14px; color:var(--gold); min-width:40px">${overallPct}%</span>
+                    </div>
+                    <div style="font-size:10px; color:var(--text-secondary); margin-top:4px">Les ${completedLessons} van ${totalAllLessons} | Biome: ${biome.name}</div>
+                </div>
+                <div style="flex:1; min-width:200px">
+                    <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px">WPM naar doel (${targetWpm} WPM)</div>
+                    <div style="display:flex; align-items:center; gap:8px">
+                        <div style="flex:1; height:16px; background:#222; border:1px solid #444">
+                            <div style="height:100%; width:${wpmPct}%; background:linear-gradient(90deg, var(--blue), var(--diamond)); transition:width 0.5s"></div>
+                        </div>
+                        <span style="font-size:14px; color:var(--gold); min-width:40px">${wpmPct}%</span>
+                    </div>
+                    <div style="font-size:10px; color:var(--text-secondary); margin-top:4px">Nu: ${player.bestWpm} WPM | Doel: ${targetWpm} WPM</div>
+                </div>
+            </div>
+            <div style="margin-top:12px; padding-top:10px; border-top:1px solid #333; font-size:11px">
+                <span style="color:${onTrack ? 'var(--green)' : 'var(--red)'}">
+                    ${onTrack ? '✅ Op schema' : '⚠️ Achter op schema'}
+                </span>
+                <span style="color:var(--text-secondary)">
+                    — Verwacht: ${expectedPct}% na ${Math.round(monthsElapsed)} maand(en) | Werkelijk: ${overallPct}%
+                </span>
+            </div>
+        </div>
+    `;
+
+    html += '<div class="dashboard-cards">';
 
     // Stats overview
     html += `
