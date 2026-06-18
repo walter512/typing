@@ -1,9 +1,12 @@
-/* ===== TypeCraft Main Application ===== */
+/* ===== TypeCraft Main Application - World-First Design ===== */
 
 let currentPlayer = null;
 let currentLesson = null;
 let lessonUpdateInterval = null;
 let currentMob = null;
+let currentProject = null;
+let wordCount = 0;
+let activeRandomEvent = null;
 
 /* ===== Screen Navigation ===== */
 
@@ -12,190 +15,389 @@ function showScreen(screenId) {
     const screen = document.getElementById(screenId);
     if (screen) screen.classList.add('active');
 
-    // Cleanup when leaving lesson
     if (screenId !== 'screen-lesson') {
         stopLessonUpdates();
     }
+    if (screenId === 'screen-world') {
+        updateWorldScreen();
+    }
 }
 
-/* ===== Profile Selection ===== */
+/* ===== Profile Selection → World ===== */
 
 async function selectProfile(playerId) {
     currentPlayer = await initPlayerData(playerId);
-    updateMenuScreen();
-    showScreen('screen-menu');
+
+    // Ensure world state exists
+    currentPlayer = await getWorldState(playerId);
+
+    // Check for daily login
+    const loginResult = checkDailyLogin(currentPlayer);
+
+    // Collect passive resources
+    const passive = calculatePassiveResources(currentPlayer);
+    for (const [res, amount] of Object.entries(passive)) {
+        currentPlayer.resources[res] = (currentPlayer.resources[res] || 0) + amount;
+    }
+
+    // Default active project if none set
+    if (!currentPlayer.world.activeProject) {
+        const available = getAvailableProjects(currentPlayer);
+        if (available.length > 0) {
+            currentPlayer.world.activeProject = available[0].id;
+        }
+    }
+
+    await savePlayer(currentPlayer);
+
+    // Show the world
+    showScreen('screen-world');
+
+    // Show daily reward popup if new login
+    if (loginResult.isNew && loginResult.reward) {
+        setTimeout(() => showDailyReward(loginResult), 500);
+    }
+
+    // Show passive resources collected
+    if (Object.keys(passive).length > 0) {
+        const passiveText = Object.entries(passive)
+            .map(([r, a]) => `+${a} ${r}`)
+            .join(', ');
+        setTimeout(() => showToast(`🏘️ Je dorp produceerde: ${passiveText}`), loginResult.isNew ? 4000 : 500);
+    }
+
+    soundButtonClick();
 }
 
-function updateMenuScreen() {
+/* ===== World Screen ===== */
+
+function updateWorldScreen() {
     if (!currentPlayer) return;
 
-    document.getElementById('menu-player-name').textContent = currentPlayer.name;
-    document.getElementById('menu-player-level').textContent = `Level ${currentPlayer.level}`;
+    // Player info
+    document.getElementById('world-player-name').textContent = currentPlayer.name;
+    document.getElementById('world-player-level').textContent = `Lvl ${currentPlayer.level}`;
 
-    const biome = BIOMES[currentPlayer.currentBiome] || BIOMES[0];
-    const biomeTitle = document.getElementById('biome-title');
-    biomeTitle.textContent = biome.name;
-    biomeTitle.style.color = biome.color;
-
-    const lessonSet = LESSON_SETS[currentPlayer.currentBiome];
-    const totalLessons = lessonSet ? lessonSet.lessons.length : 0;
-    document.getElementById('biome-progress').textContent =
-        `Les ${currentPlayer.currentLesson + 1} van ${totalLessons}`;
-
-    document.getElementById('menu-wpm').textContent = currentPlayer.bestWpm;
-    document.getElementById('menu-accuracy').textContent = currentPlayer.bestAccuracy + '%';
-    document.getElementById('menu-streak').textContent = currentPlayer.streak;
-    document.getElementById('menu-xp').textContent = currentPlayer.xp;
-
-    // XP bar
     const levelInfo = calculateLevel(currentPlayer.xp);
-    document.getElementById('menu-xp-current').textContent = levelInfo.currentXp;
-    document.getElementById('menu-xp-next').textContent = levelInfo.xpToNext;
     const xpPct = Math.round((levelInfo.currentXp / levelInfo.xpToNext) * 100);
-    document.getElementById('menu-xp-fill').style.width = xpPct + '%';
+    document.getElementById('world-xp-fill').style.width = xpPct + '%';
 
-    // Journey map
-    renderJourneyMap(currentPlayer);
+    // Resources bar
+    const resBar = document.getElementById('world-resources-bar');
+    resBar.innerHTML = '';
+    for (const [res, info] of Object.entries(RESOURCES)) {
+        const count = currentPlayer.resources[res] || 0;
+        resBar.innerHTML += `<div class="resource-count"><span class="rc-icon">${info.icon}</span>${count}</div>`;
+    }
+
+    // Stats
+    document.getElementById('world-wpm').textContent = currentPlayer.bestWpm + ' WPM';
+    document.getElementById('world-streak').textContent = '🔥 ' + currentPlayer.streak;
+
+    // Build button text
+    const btn = document.getElementById('btn-build');
+    if (currentPlayer.world.activeProject) {
+        const project = BUILDING_PROJECTS.find(p => p.id === currentPlayer.world.activeProject);
+        const building = currentPlayer.world.buildings.find(b => b.projectId === currentPlayer.world.activeProject);
+        if (project && building && !building.completed) {
+            const pct = Math.round((building.blocksPlaced / project.blocksNeeded) * 100);
+            btn.innerHTML = `<span class="btn-icon">⛏</span> ${project.name} Bouwen (${pct}%)`;
+        } else if (project) {
+            btn.innerHTML = `<span class="btn-icon">⛏</span> ${project.name} Bouwen!`;
+        }
+    } else {
+        btn.innerHTML = `<span class="btn-icon">⛏</span> Kies een Bouwproject!`;
+    }
+
+    // Render village
+    renderVillage();
 }
 
-function renderJourneyMap(player) {
-    const container = document.getElementById('journey-map');
-    const totalAllLessons = getTotalLessons();
+function renderVillage() {
+    const scene = document.getElementById('village-scene');
+    const sky = document.getElementById('village-sky');
+    const world = currentPlayer.world;
 
-    // Calculate completed lessons across all biomes
-    let completedLessons = 0;
-    for (let b = 0; b < player.currentBiome; b++) {
-        completedLessons += LESSON_SETS[b].lessons.length;
+    // Add clouds to sky (only if not already there)
+    if (!sky.querySelector('.cloud')) {
+        sky.innerHTML += `
+            <div class="cloud" style="top:8%">☁️</div>
+            <div class="cloud" style="top:18%">☁️</div>
+            <div class="cloud" style="top:5%">☁️</div>
+        `;
     }
-    completedLessons += player.currentLesson;
-
-    const overallPct = Math.round((completedLessons / totalAllLessons) * 100);
-
-    const biomeIcons = ['🌿', '🌲', '🏜️', '🔥', '🐉'];
-    const biomeTargetWpm = [15, 25, 35, 45, 60];
-    const playerAge = player.age;
-    const targetWpm = playerAge <= 8 ? 30 : playerAge <= 11 ? 45 : 60;
 
     let html = '';
-    html += `<div class="journey-title">Reis naar Blind Typen</div>`;
-    html += `<div class="journey-overall">`;
-    html += `<div class="journey-overall-pct">${overallPct}%</div>`;
-    html += `<div class="journey-overall-label">Les ${completedLessons} van ${totalAllLessons} voltooid</div>`;
-    html += `</div>`;
 
-    // Biome track
-    html += `<div class="journey-track">`;
-    for (let i = 0; i < BIOMES.length; i++) {
-        const b = BIOMES[i];
-        const isCompleted = i < player.currentBiome;
-        const isCurrent = i === player.currentBiome;
-        const isLocked = i > player.currentBiome;
-        const stateClass = isCompleted ? 'completed' : isCurrent ? 'current' : 'locked';
+    // Trees decoration
+    html += `
+        <div class="village-tree" style="left:5%; font-size:42px">🌲</div>
+        <div class="village-tree" style="left:15%; font-size:30px; bottom:40%">🌳</div>
+        <div class="village-tree" style="right:8%; font-size:38px">🌲</div>
+        <div class="village-tree" style="right:18%; font-size:28px; bottom:40%">🌳</div>
+    `;
 
-        html += `<div class="journey-biome">`;
-        html += `<div class="journey-node ${stateClass}" style="background:${isLocked ? '#222' : b.color + '33'}">${biomeIcons[i]}</div>`;
-        html += `<div class="journey-biome-name ${stateClass}">${b.name}</div>`;
-
-        // Lesson dots for current biome
-        if (isCurrent) {
-            const lessons = LESSON_SETS[i].lessons;
-            html += `<div class="journey-lesson-dots">`;
-            for (let l = 0; l < lessons.length; l++) {
-                const dotClass = l < player.currentLesson ? 'done' : l === player.currentLesson ? 'current' : '';
-                html += `<div class="journey-dot ${dotClass}"></div>`;
-            }
-            html += `</div>`;
-        }
-
-        html += `</div>`;
-
-        // Connector between biomes
-        if (i < BIOMES.length - 1) {
-            const connClass = isCompleted ? 'completed' : isCurrent ? 'active' : '';
-            html += `<div class="journey-connector ${connClass}"></div>`;
-        }
+    // Ambient particles
+    html += '<div class="village-particles">';
+    for (let i = 0; i < 8; i++) {
+        const left = Math.random() * 100;
+        const delay = Math.random() * 10;
+        const dur = 6 + Math.random() * 8;
+        html += `<div class="village-particle" style="left:${left}%; animation-duration:${dur}s; animation-delay:${delay}s"></div>`;
     }
-    html += `</div>`;
+    html += '</div>';
 
-    // End goal
-    html += `<div class="journey-goal">`;
-    html += `<div class="journey-goal-text">🏆 Einddoel: Blind typen met ${targetWpm}+ WPM</div>`;
-    html += `<div class="journey-goal-sub">Nu: ${player.bestWpm} WPM → Nog ${Math.max(0, targetWpm - player.bestWpm)} WPM te gaan</div>`;
-    html += `</div>`;
+    html += '<div class="village-buildings-container">';
 
-    container.innerHTML = html;
+    // Show completed and in-progress buildings
+    const allBuildings = BUILDING_PROJECTS.filter(p =>
+        world.buildings.some(b => b.projectId === p.id)
+    );
+
+    if (allBuildings.length === 0) {
+        // Empty village - show inviting build spots
+        html += `
+            <div class="build-spot" onclick="openBuildMenu()">+</div>
+            <div class="build-spot" onclick="openBuildMenu()" style="opacity:0.2">+</div>
+            <div class="build-spot" onclick="openBuildMenu()" style="opacity:0.1">+</div>
+        `;
+    }
+
+    allBuildings.forEach(project => {
+        const building = world.buildings.find(b => b.projectId === project.id);
+        const isComplete = building && building.completed;
+        const isActive = world.activeProject === project.id;
+        const pct = building ? Math.round((building.blocksPlaced / project.blocksNeeded) * 100) : 0;
+
+        html += `<div class="village-building ${isComplete ? 'complete' : ''} ${isActive ? 'active' : ''}"
+                      onclick="${isComplete ? '' : `selectBuildProject('${project.id}')`}">
+            <div class="building-sprite" style="opacity:${isComplete ? 1 : 0.3 + (pct / 100) * 0.7}">${project.icon}</div>
+            ${!isComplete ? `<div class="building-progress-mini"><div class="building-progress-fill" style="width:${pct}%; background:${project.color}"></div></div>` : ''}
+            <div class="building-label">${project.name}</div>
+        </div>`;
+    });
+
+    // Add build spot if there's room
+    const available = getAvailableProjects(currentPlayer);
+    if (available.length > 0) {
+        html += `<div class="build-spot" onclick="openBuildMenu()">+</div>`;
+    }
+
+    html += '</div>';
+    scene.innerHTML = html;
 }
 
-/* ===== Start Lesson ===== */
+/* ===== Daily Reward ===== */
 
-async function startLesson() {
+function showDailyReward(loginResult) {
+    const popup = document.getElementById('daily-popup');
+    popup.style.display = 'flex';
+
+    const streakDisplay = document.getElementById('daily-streak-display');
+    let dots = '<div class="streak-dots">';
+    for (let i = 0; i < 7; i++) {
+        const reward = DAILY_REWARDS[i];
+        const claimed = i < loginResult.streak - 1;
+        const isToday = i === loginResult.streak - 1;
+        dots += `<div class="streak-dot ${claimed ? 'claimed' : ''} ${isToday ? 'today' : ''}">
+            ${reward.icon}
+        </div>`;
+    }
+    dots += '</div>';
+    streakDisplay.innerHTML = `<div>Dag ${loginResult.streak} van 7</div>${dots}`;
+
+    // Reset chest
+    const chest = document.getElementById('daily-chest');
+    chest.className = 'daily-chest';
+    chest.textContent = '🎁';
+    document.getElementById('daily-reward-reveal').innerHTML = '';
+    document.querySelector('.daily-hint').style.display = '';
+
+    // Store the reward for claiming
+    popup.dataset.reward = JSON.stringify(loginResult.reward);
+}
+
+async function openDailyChest() {
+    const popup = document.getElementById('daily-popup');
+    const rewardData = JSON.parse(popup.dataset.reward || '{}');
+    if (!rewardData || !rewardData.reward) return;
+
+    const chest = document.getElementById('daily-chest');
+    if (chest.classList.contains('opened')) return;
+
+    chest.classList.add('opened');
+    document.querySelector('.daily-hint').style.display = 'none';
+    soundAchievement();
+
+    // Claim reward
+    claimDailyReward(currentPlayer, rewardData);
+    await savePlayer(currentPlayer);
+
+    // Show reward
+    const reveal = document.getElementById('daily-reward-reveal');
+    const r = rewardData.reward;
+    setTimeout(() => {
+        reveal.innerHTML = `
+            <div class="reward-icon">${rewardData.icon}</div>
+            <div style="margin-top:8px">${rewardData.name}</div>
+            ${r.xp ? `<div style="color:var(--green); font-size:10px; margin-top:4px">+${r.xp} XP</div>` : ''}
+        `;
+
+        // Close button
+        setTimeout(() => {
+            reveal.innerHTML += `<button class="btn-minecraft" style="min-width:auto; margin-top:16px; font-size:10px; padding:8px 20px" onclick="closeDailyReward()">Geweldig!</button>`;
+        }, 800);
+    }, 500);
+}
+
+function closeDailyReward() {
+    document.getElementById('daily-popup').style.display = 'none';
+    updateWorldScreen();
+}
+
+/* ===== Build Menu ===== */
+
+function openBuildMenu() {
+    // If there's an active project, start building instead of showing menu
+    if (currentPlayer && currentPlayer.world.activeProject) {
+        const building = currentPlayer.world.buildings.find(b => b.projectId === currentPlayer.world.activeProject);
+        if (building && !building.completed) {
+            startBuildSession();
+            return;
+        }
+    }
+
+    const popup = document.getElementById('build-menu-popup');
+    popup.style.display = 'flex';
+    soundButtonClick();
+
+    const list = document.getElementById('build-projects-list');
+    list.innerHTML = '';
+
+    for (const project of BUILDING_PROJECTS) {
+        const isUnlocked = currentPlayer.world.unlockedBiomes.includes(project.biome);
+        const building = currentPlayer.world.buildings.find(b => b.projectId === project.id);
+        const isComplete = building && building.completed;
+        const isInProgress = building && !building.completed;
+        const pct = building ? Math.round((building.blocksPlaced / project.blocksNeeded) * 100) : 0;
+        const isActive = currentPlayer.world.activeProject === project.id;
+
+        let stateClass = isComplete ? 'completed' : isInProgress ? 'in-progress' : !isUnlocked ? 'locked' : '';
+
+        list.innerHTML += `
+            <div class="build-project-card ${stateClass}" onclick="${isUnlocked && !isComplete ? `selectBuildProject('${project.id}')` : ''}">
+                <div class="build-card-icon">${project.icon}</div>
+                <div class="build-card-name">${project.name} ${isActive ? '⛏️' : ''}</div>
+                <div class="build-card-desc">${project.desc}</div>
+                <div class="build-card-cost">${project.blocksNeeded} blokken nodig</div>
+                ${isComplete ? '<div style="color:var(--green); font-size:9px; margin-top:4px">✅ Voltooid!</div>' : ''}
+                ${isInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${pct}%; background:${project.color}"></div></div>` : ''}
+                ${!isUnlocked ? '<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Unlock meer biomes</div>' : ''}
+            </div>
+        `;
+    }
+}
+
+function closeBuildMenu() {
+    document.getElementById('build-menu-popup').style.display = 'none';
+}
+
+async function selectBuildProject(projectId) {
+    currentPlayer.world.activeProject = projectId;
+
+    // Start building if it doesn't exist yet
+    let building = currentPlayer.world.buildings.find(b => b.projectId === projectId);
+    if (!building) {
+        currentPlayer.world.buildings.push({ projectId, blocksPlaced: 0, completed: false });
+    }
+
+    await savePlayer(currentPlayer);
+    closeBuildMenu();
+    updateWorldScreen();
+
+    const project = BUILDING_PROJECTS.find(p => p.id === projectId);
+    showToast(`⛏️ Bouwproject: ${project.name}`);
+}
+
+/* ===== Start Building (typing session) ===== */
+
+async function continueBuild() {
+    return startBuildSession();
+}
+
+async function startBuildSession() {
     if (!currentPlayer) return;
 
-    const lesson = getLessonContent(currentPlayer.currentBiome, currentPlayer.currentLesson);
-    if (!lesson) {
-        // Check if can progress to next biome
-        if (checkBiomeUnlock(currentPlayer)) {
-            currentPlayer.currentBiome++;
-            currentPlayer.currentLesson = 0;
-            await savePlayer(currentPlayer);
-            showToast(`🌍 Nieuw biome ontgrendeld: ${BIOMES[currentPlayer.currentBiome].name}!`);
-            updateMenuScreen();
-            return startLesson();
-        }
-        showToast('Alle lessen in dit biome voltooid! Verbeter je scores om verder te gaan.');
+    const projectId = currentPlayer.world.activeProject;
+    if (!projectId) {
+        openBuildMenu();
         return;
     }
 
-    currentLesson = lesson;
+    const project = BUILDING_PROJECTS.find(p => p.id === projectId);
+    if (!project) return;
 
-    // Generate text
-    const text = generateLessonText(lesson, currentPlayer.age);
-    if (!text) {
-        showToast('Geen lesinhoud beschikbaar.');
+    const building = currentPlayer.world.buildings.find(b => b.projectId === projectId);
+    if (building && building.completed) {
+        openBuildMenu();
+        showToast('Dit gebouw is al af! Kies een nieuw project.');
         return;
     }
 
-    // Setup engine
+    currentProject = project;
+
+    // Generate text from the right biome
+    const text = generateBuildingText(project, currentPlayer.age);
+    if (!text) return;
+
     createEngine(text);
+    wordCount = 0;
+    activeRandomEvent = null;
 
     // Setup UI
-    document.getElementById('lesson-title').textContent = lesson.title;
+    document.getElementById('lesson-title').textContent = project.name;
     const biomeBadge = document.getElementById('lesson-biome-badge');
-    const biome = BIOMES[currentPlayer.currentBiome];
+    const biome = BIOMES[project.biome];
     biomeBadge.textContent = biome.name;
     biomeBadge.className = `biome-badge ${biome.id}`;
 
-    // Render text display
-    renderTextDisplay(text);
+    // Build visualization
+    document.getElementById('build-icon').textContent = project.icon;
+    const buildPct = building ? Math.round((building.blocksPlaced / project.blocksNeeded) * 100) : 0;
+    document.getElementById('build-progress-fill').style.width = buildPct + '%';
+    document.getElementById('build-pct').textContent = buildPct + '%';
+    document.getElementById('build-structure').innerHTML = '';
 
-    // Render keyboard
+    renderTextDisplay(text);
     renderKeyboard('keyboard-visual');
 
-    // Setup mob if applicable
-    currentMob = lesson.mob || null;
+    // Check for mob in lesson
+    const lessonSet = LESSON_SETS[project.biome];
+    const lessonIdx = currentPlayer.currentLesson % (lessonSet ? lessonSet.lessons.length : 1);
+    const lesson = lessonSet ? lessonSet.lessons[lessonIdx] : null;
+    currentMob = lesson && lesson.mob ? lesson.mob : null;
+    currentLesson = lesson || { title: project.name };
     renderMob();
 
-    // Show lesson screen
     showScreen('screen-lesson');
 
-    // Focus hidden input
     const input = document.getElementById('typing-input');
     input.value = '';
     input.focus();
 
-    // Highlight first key
-    if (text.length > 0) {
-        highlightKey(text[0]);
-    }
+    if (text.length > 0) highlightKey(text[0]);
 
-    // Start live stats updates
     startLessonUpdates();
+}
+
+// Keep old startLesson as alias
+async function startLesson() {
+    return startBuildSession();
 }
 
 function renderTextDisplay(text) {
     const display = document.getElementById('text-display');
     display.innerHTML = '';
-
     text.split('').forEach((char, i) => {
         const span = document.createElement('span');
         span.className = `char ${i === 0 ? 'current' : 'pending'}`;
@@ -207,8 +409,6 @@ function renderTextDisplay(text) {
 
 function updateTextDisplay(pos, isCorrect) {
     const chars = document.querySelectorAll('#text-display .char');
-
-    // Update previous character
     if (pos > 0) {
         const prev = chars[pos - 1];
         if (prev) {
@@ -216,16 +416,12 @@ function updateTextDisplay(pos, isCorrect) {
             prev.classList.add(isCorrect ? 'correct' : 'incorrect');
         }
     }
-
-    // Highlight current character
     chars.forEach((c, i) => {
         if (i === pos) {
             c.classList.remove('pending');
             c.classList.add('current');
         }
     });
-
-    // Scroll text display to keep current char visible
     if (pos < chars.length) {
         chars[pos].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
@@ -235,11 +431,7 @@ function updateTextDisplay(pos, isCorrect) {
 
 function renderMob() {
     const area = document.getElementById('mob-area');
-    if (!currentMob) {
-        area.innerHTML = '';
-        return;
-    }
-
+    if (!currentMob) { area.innerHTML = ''; return; }
     area.innerHTML = `
         <div class="mob-display">
             <div class="mob-sprite">${currentMob.icon}</div>
@@ -247,32 +439,122 @@ function renderMob() {
                 <div class="mob-health-fill" id="mob-health" style="width:100%"></div>
             </div>
             <div class="mob-name">${currentMob.name} - ${currentMob.hp} HP</div>
-        </div>
-    `;
+        </div>`;
 }
 
 function updateMobHealth(damageDealt) {
     if (!currentMob) return;
     const healthBar = document.getElementById('mob-health');
     if (!healthBar) return;
-
     const remaining = Math.max(0, currentMob.hp - damageDealt);
-    const pct = (remaining / currentMob.hp) * 100;
-    healthBar.style.width = pct + '%';
-
+    healthBar.style.width = (remaining / currentMob.hp) * 100 + '%';
     if (remaining <= 0) {
-        const area = document.getElementById('mob-area');
-        area.innerHTML = `<div style="font-size:24px; color:var(--gold)">⚔️ ${currentMob.name} verslagen!</div>`;
+        document.getElementById('mob-area').innerHTML =
+            `<div style="font-size:24px; color:var(--gold)">⚔️ ${currentMob.name} verslagen!</div>`;
         soundMobDefeat();
     }
+}
+
+/* ===== Build Visualization ===== */
+
+function addBuildBlock(color) {
+    const structure = document.getElementById('build-structure');
+    const block = document.createElement('div');
+    block.className = 'build-block';
+    block.style.background = color;
+
+    // Stack blocks in a pattern
+    const blocks = structure.children.length;
+    const row = Math.floor(blocks / 8);
+    block.style.height = '6px';
+    block.style.width = '6px';
+
+    structure.appendChild(block);
+
+    // Keep only last 80 blocks visible
+    while (structure.children.length > 80) {
+        structure.removeChild(structure.firstChild);
+    }
+}
+
+function updateBuildProgress() {
+    if (!currentProject || !currentPlayer) return;
+    const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject.id);
+    if (!building) return;
+    const pct = Math.round((building.blocksPlaced / currentProject.blocksNeeded) * 100);
+    document.getElementById('build-progress-fill').style.width = pct + '%';
+    document.getElementById('build-pct').textContent = pct + '%';
+}
+
+/* ===== Random Events During Typing ===== */
+
+function triggerRandomEvent(event) {
+    activeRandomEvent = event;
+    const popup = document.getElementById('event-popup');
+
+    if (event.reward) {
+        // Positive event
+        popup.innerHTML = `
+            <div class="event-icon">${event.icon}</div>
+            <div class="event-name">${event.name}</div>
+            <div class="event-desc">${event.desc}</div>
+            <div class="event-reward">Blijf typen om te verzamelen!</div>
+        `;
+        popup.style.display = 'block';
+        popup.style.borderColor = 'var(--gold)';
+        soundAchievement();
+
+        // Apply reward
+        if (event.reward.xp) currentPlayer.xp += event.reward.xp;
+        if (event.reward.resource) {
+            const res = event.reward.resource === 'random'
+                ? ['hout', 'steen', 'ijzer', 'goud'][Math.floor(Math.random() * 4)]
+                : event.reward.resource;
+            currentPlayer.resources[res] = (currentPlayer.resources[res] || 0) + (event.reward.amount || 1);
+        }
+        if (event.reward.xpMultiplier) {
+            currentPlayer.world.xpMultiplier = event.reward.xpMultiplier;
+            currentPlayer.world.xpMultiplierWords = event.reward.duration || 10;
+        }
+
+        setTimeout(() => {
+            popup.style.display = 'none';
+            activeRandomEvent = null;
+        }, 2500);
+
+    } else if (event.threat) {
+        // Threat event - creates urgency!
+        popup.innerHTML = `
+            <div class="event-icon" style="animation: shake-char 0.3s infinite">${event.icon}</div>
+            <div class="event-name" style="color:var(--red)">${event.name}</div>
+            <div class="event-desc">${event.desc}</div>
+            <div class="event-reward" style="color:var(--red)">Typ snel om je te verdedigen!</div>
+        `;
+        popup.style.display = 'block';
+        popup.style.borderColor = 'var(--red)';
+        soundKeyError();
+
+        // Threat auto-resolves after timeout
+        setTimeout(() => {
+            popup.style.display = 'none';
+            activeRandomEvent = null;
+        }, event.threat.timeLimit * 1000);
+    }
+
+    currentPlayer.world.eventsEncountered++;
 }
 
 /* ===== Typing Input Handler ===== */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Add floating Minecraft items to profile screen
+    addFloatingItems();
+
+    // Load saved levels on profile cards
+    loadProfileLevels();
+
     const input = document.getElementById('typing-input');
 
-    // Keep input focused during lesson
     document.addEventListener('click', () => {
         if (document.getElementById('screen-lesson').classList.contains('active')) {
             input.focus();
@@ -283,18 +565,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!document.getElementById('screen-lesson').classList.contains('active')) return;
         if (!engineState || engineState.isComplete) return;
 
-        // Prevent default for most keys during lesson
         if (e.key === 'Tab' || e.key === 'Escape') {
             e.preventDefault();
             if (e.key === 'Escape') endLesson();
             return;
         }
 
-        // Only process printable characters and space
         if (e.key.length === 1 || e.key === ' ') {
             e.preventDefault();
-            const key = e.key;
-            const result = engineProcessKey(key);
+            const result = engineProcessKey(e.key);
 
             if (result) {
                 updateTextDisplay(result.pos, result.isCorrect);
@@ -302,19 +581,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (result.isCorrect) {
                     soundKeyCorrect();
 
-                    // Highlight next key
-                    if (!result.isComplete) {
-                        const nextChar = engineState.chars[engineState.pos];
-                        highlightKey(nextChar);
+                    if (!result.isComplete) highlightKey(engineState.chars[engineState.pos]);
+
+                    // Place a block for each correct character!
+                    if (currentProject) {
+                        const blockResult = placeBlock(currentPlayer);
+                        if (blockResult && blockResult.placed) {
+                            addBuildBlock(currentProject.color);
+                            updateBuildProgress();
+
+                            if (blockResult.completed) {
+                                soundLevelUp();
+                                showToast(`🎉 ${currentProject.name} is af!`);
+                            }
+                        }
                     }
 
-                    // Word complete sound
+                    // Word complete
                     if (result.typed === ' ' || result.isComplete) {
                         soundWordComplete();
+                        wordCount++;
+
+                        // XP multiplier decay
+                        if (currentPlayer.world.xpMultiplierWords > 0) {
+                            currentPlayer.world.xpMultiplierWords--;
+                            if (currentPlayer.world.xpMultiplierWords <= 0) {
+                                currentPlayer.world.xpMultiplier = 1;
+                            }
+                        }
+
+                        // Random event check every few words
+                        if (wordCount % 3 === 0 && !activeRandomEvent) {
+                            const event = rollRandomEvent(currentPlayer);
+                            if (event) triggerRandomEvent(event);
+                        }
                     }
 
-                    // Spawn block particle occasionally
-                    if (Math.random() < 0.3) {
+                    // Particles
+                    if (Math.random() < 0.25) {
                         const stats = getEngineStats();
                         const resource = Object.keys(stats.resourcesEarned).pop() || 'hout';
                         spawnBlockParticle(
@@ -322,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             window.innerHeight / 2,
                             resource
                         );
-                        soundBlockMine();
+                        if (Math.random() < 0.3) soundBlockMine();
                     }
 
                     // Update mob
@@ -332,30 +636,138 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } else {
                     soundKeyError();
-                    // Flash error on keyboard
                     flashKeyError(result.expected);
                 }
 
-                // Check completion
+                // Auto-continue: when text is done, generate more!
                 if (result.isComplete) {
-                    finishLesson();
+                    handleTextComplete();
                 }
             }
         }
     });
 
-    // Initialize
     initApp();
 });
 
-/* ===== Live Stats Updates ===== */
+/* ===== Auto-Continue: No Natural Stopping Point ===== */
+
+async function handleTextComplete() {
+    const stats = getEngineStats();
+
+    // Save progress
+    await saveSessionData(stats);
+
+    // Check if building is complete
+    const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject?.id);
+    if (building && building.completed) {
+        // Building finished! Show results and pick a new project
+        finishLesson();
+        return;
+    }
+
+    // Generate MORE text and keep going! (Zeigarnik - don't stop!)
+    const newText = generateBuildingText(currentProject, currentPlayer.age);
+    createEngine(newText);
+    renderTextDisplay(newText);
+    wordCount = 0;
+
+    if (newText.length > 0) highlightKey(newText[0]);
+
+    const input = document.getElementById('typing-input');
+    input.value = '';
+    input.focus();
+
+    // Brief encouraging toast
+    const encouragements = [
+        '⛏ Goed bezig! Blijf bouwen!',
+        '🔥 Je gaat lekker!',
+        '💪 Doorgaan!',
+        `🏗️ Nog ${currentProject ? currentProject.blocksNeeded - (building?.blocksPlaced || 0) : '?'} blokken!`,
+        '⚡ Snelheidsbonus!',
+        '🌟 Fantastisch!',
+    ];
+    showToast(encouragements[Math.floor(Math.random() * encouragements.length)]);
+}
+
+async function saveSessionData(stats) {
+    if (!stats || !currentPlayer) return;
+
+    const handicap = PLAYERS[currentPlayer.id]?.handicap || 1;
+    const multiplier = currentPlayer.world.xpMultiplier || 1;
+    const xpGained = Math.round(calculateXpGain(stats, handicap) * multiplier);
+
+    currentPlayer.xp += xpGained;
+    const levelInfo = calculateLevel(currentPlayer.xp);
+    currentPlayer.level = levelInfo.level;
+    currentPlayer.xpToNext = levelInfo.xpToNext;
+
+    currentPlayer.totalBlocks += stats.blocksMined;
+    currentPlayer.totalSessions++;
+    currentPlayer.totalMinutes += Math.round(stats.elapsedMinutes);
+
+    if (stats.wpm > currentPlayer.bestWpm) currentPlayer.bestWpm = stats.wpm;
+    if (stats.accuracy > currentPlayer.bestAccuracy) currentPlayer.bestAccuracy = stats.accuracy;
+
+    for (const [key, count] of Object.entries(stats.keyErrors)) {
+        currentPlayer.keyErrors[key] = (currentPlayer.keyErrors[key] || 0) + count;
+    }
+    for (const [res, count] of Object.entries(stats.resourcesEarned)) {
+        currentPlayer.resources[res] = (currentPlayer.resources[res] || 0) + count;
+    }
+
+    updateStreak(currentPlayer);
+
+    // Biome unlock check
+    if (currentPlayer.bestWpm >= 15 && !currentPlayer.world.unlockedBiomes.includes(1)) {
+        currentPlayer.world.unlockedBiomes.push(1);
+        currentPlayer.currentBiome = Math.max(currentPlayer.currentBiome, 1);
+        showToast('🌲 Nieuw biome ontgrendeld: Forest!');
+    }
+    if (currentPlayer.bestWpm >= 25 && !currentPlayer.world.unlockedBiomes.includes(2)) {
+        currentPlayer.world.unlockedBiomes.push(2);
+        currentPlayer.currentBiome = Math.max(currentPlayer.currentBiome, 2);
+        showToast('🏜️ Nieuw biome ontgrendeld: Desert!');
+    }
+    if (currentPlayer.bestWpm >= 35 && !currentPlayer.world.unlockedBiomes.includes(3)) {
+        currentPlayer.world.unlockedBiomes.push(3);
+        currentPlayer.currentBiome = Math.max(currentPlayer.currentBiome, 3);
+        showToast('🔥 Nieuw biome ontgrendeld: Nether!');
+    }
+    if (currentPlayer.bestWpm >= 45 && !currentPlayer.world.unlockedBiomes.includes(4)) {
+        currentPlayer.world.unlockedBiomes.push(4);
+        currentPlayer.currentBiome = Math.max(currentPlayer.currentBiome, 4);
+        showToast('🐉 Nieuw biome ontgrendeld: The End!');
+    }
+
+    currentPlayer.currentLesson++;
+    currentPlayer.world.totalWordsTyped += stats.wordsCompleted;
+
+    await savePlayer(currentPlayer);
+
+    await saveSession({
+        playerId: currentPlayer.id,
+        date: getToday(),
+        wpm: stats.wpm,
+        accuracy: stats.accuracy,
+        blocks: stats.blocksMined,
+        xp: xpGained,
+        duration: stats.elapsedMinutes,
+        keyErrors: stats.keyErrors,
+        lesson: currentLesson?.title || currentProject?.name || '',
+        biome: BIOMES[currentPlayer.currentBiome]?.id || 'plains'
+    });
+
+    await checkAchievements(currentPlayer.id, stats);
+}
+
+/* ===== Live Stats ===== */
 
 function startLessonUpdates() {
     stopLessonUpdates();
     lessonUpdateInterval = setInterval(() => {
         const stats = getEngineStats();
         if (!stats) return;
-
         document.getElementById('live-wpm').textContent = stats.wpm + ' WPM';
         document.getElementById('live-accuracy').textContent = stats.accuracy + '%';
         document.getElementById('live-timer').textContent = stats.elapsed;
@@ -370,130 +782,63 @@ function stopLessonUpdates() {
     }
 }
 
-/* ===== Finish Lesson ===== */
+/* ===== Finish Build Session ===== */
 
 async function finishLesson() {
     stopLessonUpdates();
-
     const stats = getEngineStats();
     if (!stats || !currentPlayer) return;
 
+    await saveSessionData(stats);
+
     const handicap = PLAYERS[currentPlayer.id]?.handicap || 1;
     const xpGained = calculateXpGain(stats, handicap);
-
-    // Update player data
-    currentPlayer.xp += xpGained;
-    const levelInfo = calculateLevel(currentPlayer.xp);
-    const oldLevel = currentPlayer.level;
-    currentPlayer.level = levelInfo.level;
-    currentPlayer.xpToNext = levelInfo.xpToNext;
-
-    currentPlayer.totalBlocks += stats.blocksMined;
-    currentPlayer.totalSessions++;
-    currentPlayer.totalMinutes += Math.round(stats.elapsedMinutes);
-
-    if (stats.wpm > currentPlayer.bestWpm) currentPlayer.bestWpm = stats.wpm;
-    if (stats.accuracy > currentPlayer.bestAccuracy) currentPlayer.bestAccuracy = stats.accuracy;
-
-    // Merge key errors
-    for (const [key, count] of Object.entries(stats.keyErrors)) {
-        currentPlayer.keyErrors[key] = (currentPlayer.keyErrors[key] || 0) + count;
-    }
-
-    // Add resources
-    for (const [res, count] of Object.entries(stats.resourcesEarned)) {
-        currentPlayer.resources[res] = (currentPlayer.resources[res] || 0) + count;
-    }
-
-    // Update streak
-    updateStreak(currentPlayer);
-
-    // Progress lesson if accuracy is good enough
-    if (stats.accuracy >= 75) {
-        currentPlayer.currentLesson++;
-        // Check biome transition
-        const lessonSet = LESSON_SETS[currentPlayer.currentBiome];
-        if (currentPlayer.currentLesson >= lessonSet.lessons.length) {
-            if (checkBiomeUnlock(currentPlayer)) {
-                currentPlayer.currentBiome++;
-                currentPlayer.currentLesson = 0;
-            }
-        }
-    }
-
-    await savePlayer(currentPlayer);
-
-    // Save session
-    await saveSession({
-        playerId: currentPlayer.id,
-        date: getToday(),
-        wpm: stats.wpm,
-        accuracy: stats.accuracy,
-        blocks: stats.blocksMined,
-        xp: xpGained,
-        duration: stats.elapsedMinutes,
-        keyErrors: stats.keyErrors,
-        lesson: currentLesson?.title || '',
-        biome: BIOMES[currentPlayer.currentBiome]?.id || 'plains'
-    });
-
-    // Check achievements
     const newAchievements = await checkAchievements(currentPlayer.id, stats);
-
-    // Check family streak
     const familyStreak = await checkFamilyStreak();
-    if (familyStreak) {
-        await unlockAchievement(currentPlayer.id, 'familie_streak');
-    }
+    if (familyStreak) await unlockAchievement(currentPlayer.id, 'familie_streak');
 
-    // Show results screen
-    showResults(stats, xpGained, newAchievements, oldLevel < currentPlayer.level);
-
+    showResults(stats, xpGained, newAchievements, false);
     resetEngine();
 }
 
 function showResults(stats, xpGained, newAchievements, leveledUp) {
     soundLessonComplete();
-    if (leveledUp) setTimeout(soundLevelUp, 800);
-    if (newAchievements.length > 0) setTimeout(soundAchievement, 1200);
+    if (newAchievements.length > 0) setTimeout(soundAchievement, 800);
 
     document.getElementById('result-wpm').textContent = stats.wpm;
     document.getElementById('result-accuracy').textContent = stats.accuracy + '%';
     document.getElementById('result-xp').textContent = '+' + xpGained;
     document.getElementById('result-blocks').textContent = stats.blocksMined;
 
-    // Title
     const title = document.getElementById('results-title');
-    if (stats.accuracy === 100) {
+    if (currentProject) {
+        const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject.id);
+        if (building && building.completed) {
+            title.textContent = `🎉 ${currentProject.name} Voltooid!`;
+        } else {
+            const pct = building ? Math.round((building.blocksPlaced / currentProject.blocksNeeded) * 100) : 0;
+            title.textContent = `⛏ ${currentProject.name} — ${pct}% af`;
+        }
+    } else if (stats.accuracy === 100) {
         title.textContent = '⭐ Perfect! ⭐';
     } else if (stats.accuracy >= 90) {
         title.textContent = 'Uitstekend!';
-    } else if (stats.accuracy >= 75) {
-        title.textContent = 'Goed Gedaan!';
     } else {
-        title.textContent = 'Blijf Oefenen!';
+        title.textContent = 'Goed Gedaan!';
     }
 
-    // Resources earned
+    // Resources
     const resDiv = document.getElementById('results-resources');
     resDiv.innerHTML = '';
     for (const [res, count] of Object.entries(stats.resourcesEarned)) {
         if (count > 0) {
-            resDiv.innerHTML += `
-                <div class="resource-item">
-                    <span class="resource-icon">${RESOURCES[res]?.icon || '📦'}</span>
-                    <span>+${count} ${res}</span>
-                </div>
-            `;
+            resDiv.innerHTML += `<div class="resource-item"><span class="resource-icon">${RESOURCES[res]?.icon || '📦'}</span><span>+${count} ${res}</span></div>`;
         }
     }
 
     // Achievements
     const achDiv = document.getElementById('results-achievements');
     achDiv.innerHTML = '';
-    if (leveledUp) {
-        achDiv.innerHTML += `<div class="achievement">🎉 Level Up! Je bent nu Level ${currentPlayer.level}!</div>`;
-    }
     for (const ach of newAchievements) {
         achDiv.innerHTML += `<div class="achievement">${ach.icon} ${ach.name}: ${ach.desc}</div>`;
     }
@@ -503,9 +848,9 @@ function showResults(stats, xpGained, newAchievements, leveledUp) {
     keysDiv.innerHTML = '';
     const errors = Object.entries(stats.keyErrors).sort((a, b) => b[1] - a[1]);
     if (errors.length > 0) {
-        keysDiv.innerHTML = '<p style="font-size:11px; color:var(--text-secondary); margin-bottom:8px">Oefen deze toetsen extra:</p>';
+        keysDiv.innerHTML = '<p style="font-size:10px; color:var(--text-secondary); margin-bottom:6px">Oefen deze toetsen:</p>';
         errors.forEach(([key, count]) => {
-            keysDiv.innerHTML += `<span class="problem-key">${key} (${count}x fout)</span>`;
+            keysDiv.innerHTML += `<span class="problem-key">${key} (${count}x)</span>`;
         });
     }
 
@@ -519,12 +864,10 @@ function endLesson() {
     const stats = getEngineStats();
 
     if (stats && stats.totalKeystrokes > 10) {
-        // Save partial progress
         finishLesson();
     } else {
         resetEngine();
-        updateMenuScreen();
-        showScreen('screen-menu');
+        showScreen('screen-world');
     }
 }
 
@@ -532,36 +875,33 @@ function endLesson() {
 
 async function startDailyChallenge() {
     if (!currentPlayer) return;
-
     const challenge = getDailyChallenge(currentPlayer);
-
-    // Setup engine with challenge text
     createEngine(challenge.text);
 
-    // Setup UI
     document.getElementById('lesson-title').textContent = challenge.title;
-    const biomeBadge = document.getElementById('lesson-biome-badge');
     const biome = BIOMES[currentPlayer.currentBiome];
-    biomeBadge.textContent = biome.name;
-    biomeBadge.className = `biome-badge ${biome.id}`;
+    const badge = document.getElementById('lesson-biome-badge');
+    badge.textContent = biome.name;
+    badge.className = `biome-badge ${biome.id}`;
+
+    document.getElementById('build-icon').textContent = '⚔';
+    document.getElementById('build-progress-fill').style.width = '0%';
+    document.getElementById('build-pct').textContent = '';
+    document.getElementById('build-structure').innerHTML = '';
 
     renderTextDisplay(challenge.text);
     renderKeyboard('keyboard-visual');
 
     currentMob = null;
+    currentProject = null;
     currentLesson = { title: challenge.title };
     renderMob();
 
     showScreen('screen-lesson');
+    document.getElementById('typing-input').value = '';
+    document.getElementById('typing-input').focus();
 
-    const input = document.getElementById('typing-input');
-    input.value = '';
-    input.focus();
-
-    if (challenge.text.length > 0) {
-        highlightKey(challenge.text[0]);
-    }
-
+    if (challenge.text.length > 0) highlightKey(challenge.text[0]);
     startLessonUpdates();
 }
 
@@ -569,58 +909,35 @@ async function startDailyChallenge() {
 
 function showInventory() {
     if (!currentPlayer) return;
-
     const grid = document.getElementById('inventory-grid');
     grid.innerHTML = '';
 
-    // Show resources
     for (const [res, info] of Object.entries(RESOURCES)) {
         const count = currentPlayer.resources[res] || 0;
-        grid.innerHTML += `
-            <div class="inv-slot" title="${res}: ${count}">
-                ${count > 0 ? info.icon : ''}
-                ${count > 0 ? `<span class="count">${count}</span>` : ''}
-            </div>
-        `;
+        grid.innerHTML += `<div class="inv-slot" title="${res}: ${count}">${count > 0 ? info.icon : ''}${count > 0 ? `<span class="count">${count}</span>` : ''}</div>`;
     }
-
-    // Show crafted items
     for (const item of currentPlayer.inventory) {
-        grid.innerHTML += `
-            <div class="inv-slot" title="${item.name}">
-                ${item.icon}
-            </div>
-        `;
+        grid.innerHTML += `<div class="inv-slot" title="${item.name}">${item.icon}</div>`;
     }
-
-    // Fill remaining slots
     const totalSlots = 27;
     const usedSlots = Object.keys(RESOURCES).length + currentPlayer.inventory.length;
     for (let i = usedSlots; i < totalSlots; i++) {
         grid.innerHTML += '<div class="inv-slot"></div>';
     }
 
-    // Crafting section
     const craftSection = document.getElementById('crafting-section');
-    craftSection.innerHTML = '<h3 style="margin:20px 0 12px; font-size:14px">⚒️ Crafting</h3>';
-    craftSection.innerHTML += '<div style="display:flex; flex-wrap:wrap; gap:8px">';
-
+    craftSection.innerHTML = '<h3 style="margin:20px 0 12px; font-size:14px">⚒️ Crafting</h3><div style="display:flex; flex-wrap:wrap; gap:8px">';
     for (const recipe of CRAFT_RECIPES) {
         const canMake = canCraft(recipe, currentPlayer.resources);
         const costText = Object.entries(recipe.cost).map(([r, n]) => `${n} ${r}`).join(', ');
-
-        craftSection.innerHTML += `
-            <div style="background:var(--bg-medium); border:2px solid ${canMake ? 'var(--green)' : '#333'}; padding:12px; min-width:200px; opacity:${canMake ? '1' : '0.5'}">
-                <div style="font-size:20px; margin-bottom:4px">${recipe.icon} ${recipe.name}</div>
-                <div style="font-size:10px; color:var(--text-secondary)">Kosten: ${costText}</div>
-                <div style="font-size:10px; color:var(--gold)">+${recipe.xp} XP</div>
-                ${canMake ? `<button class="btn-minecraft" style="min-width:auto; margin-top:8px; font-size:10px; padding:6px 12px" onclick="doCraft('${recipe.id}')">Craft!</button>` : ''}
-            </div>
-        `;
+        craftSection.innerHTML += `<div style="background:var(--bg-medium); border:2px solid ${canMake ? 'var(--green)' : '#333'}; padding:12px; min-width:200px; opacity:${canMake ? '1' : '0.5'}">
+            <div style="font-size:20px; margin-bottom:4px">${recipe.icon} ${recipe.name}</div>
+            <div style="font-size:10px; color:var(--text-secondary)">Kosten: ${costText}</div>
+            <div style="font-size:10px; color:var(--gold)">+${recipe.xp} XP</div>
+            ${canMake ? `<button class="btn-minecraft" style="min-width:auto; margin-top:8px; font-size:10px; padding:6px 12px" onclick="doCraft('${recipe.id}')">Craft!</button>` : ''}
+        </div>`;
     }
-
     craftSection.innerHTML += '</div>';
-
     showScreen('screen-inventory');
 }
 
@@ -630,7 +947,7 @@ async function doCraft(recipeId) {
         currentPlayer = await getPlayer(currentPlayer.id);
         soundCraft();
         showToast('⚒️ Item gecraftd!');
-        showInventory(); // Refresh
+        showInventory();
     }
 }
 
@@ -641,52 +958,31 @@ async function showFamilyBoard() {
     const scoresDiv = document.getElementById('family-scores');
     const buildDiv = document.getElementById('shared-build');
 
-    // Family streak
     const familyStreak = await checkFamilyStreak();
-    streakDiv.innerHTML = `
-        <h3 style="margin-bottom:8px">Familie Streak</h3>
-        <div style="font-size:24px; color:${familyStreak ? 'var(--gold)' : 'var(--text-secondary)'}">
-            ${familyStreak ? '🔥 Alle 3 vandaag geoefend! 2x bonus actief!' : '⏳ Nog niet iedereen vandaag geoefend'}
-        </div>
-    `;
+    streakDiv.innerHTML = `<h3 style="margin-bottom:8px">Familie Streak</h3>
+        <div style="font-size:20px; color:${familyStreak ? 'var(--gold)' : 'var(--text-secondary)'}">
+            ${familyStreak ? '🔥 Alle 3 vandaag geoefend! 2x bonus!' : '⏳ Nog niet iedereen vandaag'}
+        </div>`;
 
-    // Scores
     const scores = await getFamilyScores();
-    scoresDiv.innerHTML = '<h3 style="margin-bottom:12px">Weekranglijst (op verbetering)</h3>';
-
+    scoresDiv.innerHTML = '<h3 style="margin-bottom:12px">Weekranglijst</h3>';
     const medals = ['🥇', '🥈', '🥉'];
     scores.forEach((score, i) => {
-        scoresDiv.innerHTML += `
-            <div class="family-score-card">
-                <div>
-                    <span style="font-size:20px; margin-right:8px">${medals[i] || ''}</span>
-                    <span class="player-name">${score.name}</span>
-                    <span style="font-size:10px; color:var(--text-secondary); margin-left:8px">Level ${score.level}</span>
-                </div>
-                <div style="text-align:right">
-                    <div style="font-size:14px">${score.weekWpm} WPM</div>
-                    <div class="improvement">${score.improvement >= 0 ? '+' : ''}${score.improvement} WPM deze week</div>
-                    <div style="font-size:10px; color:var(--text-secondary)">Score: ${score.handicapScore} (×${PLAYERS[score.id]?.handicap || 1} handicap)</div>
-                </div>
+        scoresDiv.innerHTML += `<div class="family-score-card">
+            <div><span style="font-size:20px; margin-right:8px">${medals[i] || ''}</span>
+            <span class="player-name">${score.name}</span>
+            <span style="font-size:10px; color:var(--text-secondary); margin-left:8px">Level ${score.level}</span></div>
+            <div style="text-align:right">
+                <div style="font-size:14px">${score.weekWpm} WPM</div>
+                <div class="improvement">${score.improvement >= 0 ? '+' : ''}${score.improvement} WPM</div>
             </div>
-        `;
+        </div>`;
     });
 
-    // Shared build
     const build = await getSharedBuildProgress();
-    buildDiv.innerHTML = `
-        <h3 style="margin-bottom:8px">Gezamenlijk Bouwproject</h3>
-        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px">
-            Bouw ${build.currentBuild + 1} — ${Math.round(build.buildProgress * 100)}% voltooid
-        </div>
-        <div style="font-size:11px; margin-bottom:12px">
-            Totaal blokken: ${build.totalBlocks} |
-            ${build.contributions.map(c => `${c.name}: ${c.blocks} (${c.percentage}%)`).join(' | ')}
-        </div>
-        <div class="build-grid">
-            ${renderBuildGrid(build)}
-        </div>
-    `;
+    buildDiv.innerHTML = `<h3 style="margin-bottom:8px">Gezamenlijk Bouwproject</h3>
+        <div style="font-size:12px; color:var(--text-secondary)">Totaal: ${build.totalBlocks} blokken</div>
+        <div class="build-grid">${renderBuildGrid(build)}</div>`;
 
     showScreen('screen-family');
 }
@@ -694,34 +990,15 @@ async function showFamilyBoard() {
 function renderBuildGrid(build) {
     const total = 16 * 8;
     let html = '';
-
-    // Color blocks by who contributed
-    const players = build.contributions;
-    const colors = {
-        [players[0]?.name]: '#4caf50',
-        [players[1]?.name]: '#2196f3',
-        [players[2]?.name]: '#ff9800'
-    };
-
-    let blockIndex = 0;
+    const colors = ['#4caf50', '#2196f3', '#ff9800'];
     for (let i = 0; i < total; i++) {
         if (i < build.filledCells) {
-            // Assign colors based on contribution ratio
-            let color = '#555';
-            let cumulative = 0;
-            for (const p of players) {
-                cumulative += p.percentage;
-                if ((i / build.filledCells) * 100 < cumulative) {
-                    color = colors[p.name] || '#555';
-                    break;
-                }
-            }
-            html += `<div class="build-block filled" style="background:${color}"></div>`;
+            const colorIdx = Math.floor((i / build.filledCells) * 3);
+            html += `<div class="build-block filled" style="background:${colors[colorIdx] || '#555'}"></div>`;
         } else {
             html += '<div class="build-block" style="background:#222"></div>';
         }
     }
-
     return html;
 }
 
@@ -751,18 +1028,14 @@ function showParentTab(tab) {
     renderParentDashboard(tab);
 }
 
-/* ===== App Initialization ===== */
+/* ===== Initialization ===== */
 
 async function initApp() {
     try {
         await openDB();
-
-        // Initialize all player data
         for (const id of Object.keys(PLAYERS)) {
             await initPlayerData(id);
         }
-
-        // Update profile cards with current levels
         for (const id of Object.keys(PLAYERS)) {
             const player = await getPlayer(id);
             if (player) {
@@ -770,7 +1043,6 @@ async function initApp() {
                 if (levelEl) levelEl.textContent = `Level ${player.level}`;
             }
         }
-
         showScreen('screen-profiles');
     } catch (err) {
         console.error('Failed to initialize TypeCraft:', err);
@@ -779,7 +1051,40 @@ async function initApp() {
 
 function toggleSoundBtn() {
     const enabled = toggleSound();
-    const btn = document.getElementById('btn-sound');
-    btn.textContent = enabled ? '🔊 Geluid Aan' : '🔇 Geluid Uit';
+    document.getElementById('btn-sound').textContent = enabled ? '🔊 Geluid Aan' : '🔇 Geluid Uit';
     if (enabled) soundButtonClick();
+}
+
+// Legacy compatibility
+function updateMenuScreen() { updateWorldScreen(); }
+
+/* ===== Visual Enhancements ===== */
+
+function addFloatingItems() {
+    const screen = document.getElementById('screen-profiles');
+    const items = ['⛏️', '🗡️', '💎', '🪓', '🏗️', '⭐', '🔥', '🛡️', '🪣', '🧱', '🌲', '⚔️'];
+    for (let i = 0; i < 12; i++) {
+        const el = document.createElement('div');
+        el.className = 'floating-item';
+        el.textContent = items[i % items.length];
+        el.style.left = (5 + Math.random() * 90) + '%';
+        el.style.top = (5 + Math.random() * 85) + '%';
+        el.style.animationDelay = (Math.random() * 8) + 's';
+        el.style.animationDuration = (6 + Math.random() * 6) + 's';
+        el.style.fontSize = (16 + Math.random() * 16) + 'px';
+        el.style.opacity = 0.08 + Math.random() * 0.12;
+        screen.appendChild(el);
+    }
+}
+
+async function loadProfileLevels() {
+    for (const p of Object.keys(PLAYERS)) {
+        try {
+            const data = await getPlayer(p);
+            if (data) {
+                const lvl = document.getElementById('level-' + p);
+                if (lvl) lvl.textContent = 'Level ' + (data.level || 1);
+            }
+        } catch (e) { /* first visit */ }
+    }
 }
