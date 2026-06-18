@@ -114,106 +114,16 @@ function updateWorldScreen() {
         const building = currentPlayer.world.buildings.find(b => b.projectId === currentPlayer.world.activeProject);
         if (project && building && !building.completed) {
             const pct = Math.round((building.blocksPlaced / project.blocksNeeded) * 100);
-            btn.innerHTML = `<span class="btn-icon">⛏</span> ${project.name} Bouwen (${pct}%)`;
+            btn.innerHTML = `<span class="btn-icon">⛏</span> ${project.name} (${pct}%)`;
         } else if (project) {
             btn.innerHTML = `<span class="btn-icon">⛏</span> ${project.name} Bouwen!`;
         }
     } else {
-        btn.innerHTML = `<span class="btn-icon">⛏</span> Kies wat je wilt bouwen!`;
+        btn.innerHTML = `<span class="btn-icon">⛏</span> Kies een gebouw!`;
     }
 
-    // Render village
-    renderVillage();
-}
-
-async function renderVillage() {
-    const scene = document.getElementById('village-scene');
-    const sky = document.getElementById('village-sky');
-
-    // Add clouds to sky (only if not already there)
-    if (!sky.querySelector('.cloud')) {
-        sky.innerHTML += `
-            <div class="cloud" style="top:8%">☁️</div>
-            <div class="cloud" style="top:18%">☁️</div>
-            <div class="cloud" style="top:5%">☁️</div>
-        `;
-    }
-
-    // Load ALL players' buildings for the shared city
-    const allPlayerBuildings = [];
-    for (const [id, info] of Object.entries(PLAYERS)) {
-        const player = await getPlayer(id);
-        if (player && player.world && player.world.buildings) {
-            for (const b of player.world.buildings) {
-                allPlayerBuildings.push({ ...b, playerId: id, playerName: info.name });
-            }
-        }
-    }
-
-    let html = '';
-
-    // Trees decoration
-    html += `
-        <div class="village-tree" style="left:5%; font-size:42px">🌲</div>
-        <div class="village-tree" style="left:15%; font-size:30px; bottom:40%">🌳</div>
-        <div class="village-tree" style="right:8%; font-size:38px">🌲</div>
-        <div class="village-tree" style="right:18%; font-size:28px; bottom:40%">🌳</div>
-    `;
-
-    // Ambient particles
-    html += '<div class="village-particles">';
-    for (let i = 0; i < 8; i++) {
-        const left = Math.random() * 100;
-        const delay = Math.random() * 10;
-        const dur = 6 + Math.random() * 8;
-        html += `<div class="village-particle" style="left:${left}%; animation-duration:${dur}s; animation-delay:${delay}s"></div>`;
-    }
-    html += '</div>';
-
-    // Shared city progress
-    const completedCount = allPlayerBuildings.filter(b => b.completed).length;
-    const totalProjects = BUILDING_PROJECTS.length;
-    html += `<div class="city-progress">🏘️ Ons Dorp: ${completedCount}/${totalProjects} gebouwen</div>`;
-
-    html += '<div class="village-buildings-container">';
-
-    // Gather unique building projects that anyone has started
-    const builtProjectIds = [...new Set(allPlayerBuildings.map(b => b.projectId))];
-    const builtProjects = builtProjectIds.map(id => BUILDING_PROJECTS.find(p => p.id === id)).filter(Boolean);
-
-    if (builtProjects.length === 0) {
-        html += `
-            <div class="build-spot" onclick="openBuildMenu()">+</div>
-            <div class="build-spot" onclick="openBuildMenu()" style="opacity:0.2">+</div>
-            <div class="build-spot" onclick="openBuildMenu()" style="opacity:0.1">+</div>
-        `;
-    }
-
-    builtProjects.forEach(project => {
-        const building = allPlayerBuildings.find(b => b.projectId === project.id);
-        const isComplete = building && building.completed;
-        const isActive = currentPlayer.world.activeProject === project.id;
-        const pct = building ? Math.round((building.blocksPlaced / project.blocksNeeded) * 100) : 0;
-        const builderInitial = building.playerName.charAt(0);
-        const isOwn = building.playerId === currentPlayer.id;
-
-        html += `<div class="village-building ${isComplete ? 'complete' : ''} ${isActive ? 'active' : ''}"
-                      onclick="${isOwn && !isComplete ? `selectBuildProject('${project.id}')` : ''}">
-            <div class="building-sprite" style="opacity:${isComplete ? 1 : 0.3 + (pct / 100) * 0.7}">${project.icon}</div>
-            <div class="building-builder">${builderInitial}</div>
-            ${!isComplete ? `<div class="building-progress-mini"><div class="building-progress-fill" style="width:${pct}%; background:${project.color}"></div></div>` : ''}
-            <div class="building-label">${project.name}</div>
-        </div>`;
-    });
-
-    // Add build spot if there's room for current player
-    const available = await getAvailableProjects(currentPlayer);
-    if (available.length > 0) {
-        html += `<div class="build-spot" onclick="openBuildMenu()">+</div>`;
-    }
-
-    html += '</div>';
-    scene.innerHTML = html;
+    // Render 3D isometric city
+    renderCity3D('city-container');
 }
 
 /* ===== Daily Reward ===== */
@@ -583,46 +493,21 @@ function updateMobHealth(damageDealt) {
 
 function initBuildGrid(project, blocksPlaced) {
     const structure = document.getElementById('build-structure');
-    structure.innerHTML = '';
-
-    const total = project.blocksNeeded;
-    // Grid columns based on building width, scaled up
-    const cols = Math.max(4, project.width * 3);
-    const rows = Math.ceil(total / cols);
-
-    structure.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-
-    // Create all cells — filled from bottom-left, row by row
-    const cells = [];
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const idx = r * cols + c;
-            if (idx >= total) break;
-            const cell = document.createElement('div');
-            // Reverse row order: bottom rows first (build from ground up)
-            const visualRow = rows - 1 - r;
-            cell.style.order = visualRow * cols + c;
-            cell.className = 'build-cell empty';
-            cell.dataset.idx = idx;
-            structure.appendChild(cell);
-            cells.push(cell);
-        }
-    }
-
-    // Fill already-placed blocks
-    for (let i = 0; i < Math.min(blocksPlaced, cells.length); i++) {
-        cells[i].className = 'build-cell filled';
-        cells[i].style.background = project.color;
+    // Use isometric building preview if blueprint exists
+    if (BUILDING_BLUEPRINTS[project.id]) {
+        structure.innerHTML = renderBuilding(project.id, blocksPlaced, project.blocksNeeded);
+        structure.style.transform = 'scale(0.8)';
+    } else {
+        structure.innerHTML = '';
     }
 }
 
 function addBuildBlock(color) {
-    const structure = document.getElementById('build-structure');
-    const empty = structure.querySelector('.build-cell.empty');
-    if (empty) {
-        empty.className = 'build-cell filled';
-        empty.style.background = color;
-        empty.style.animation = 'block-pop 0.3s ease-out';
+    if (currentProject && BUILDING_BLUEPRINTS[currentProject.id]) {
+        const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject.id);
+        if (building) {
+            animateNewBlock(currentProject.id, building.blocksPlaced, currentProject.blocksNeeded);
+        }
     }
 }
 

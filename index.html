@@ -14,7 +14,7 @@
     <div id="screen-profiles" class="screen active">
         <div class="title-banner">
             <h1>TypeCraft</h1>
-            <p class="subtitle">Leer blind typen in Minecraft-stijl</p>
+            <p class="subtitle">Bouw samen een stad door te typen!</p>
         </div>
         <div class="profile-cards">
             <div class="profile-card" data-player="sebas" onclick="selectProfile('sebas')">
@@ -46,39 +46,37 @@
         </div>
     </div>
 
-    <!-- SCREEN: World View (replaces old menu) -->
+    <!-- SCREEN: World View — 3D Isometric City -->
     <div id="screen-world" class="screen">
-        <div class="world-header">
-            <button class="btn-back" onclick="showScreen('screen-profiles')">← Wissel Speler</button>
-            <div class="world-player-bar">
-                <span id="world-player-name"></span>
-                <span id="world-player-level" class="level-badge"></span>
-                <div class="world-xp-mini">
-                    <div class="world-xp-fill" id="world-xp-fill"></div>
+        <!-- HUD overlay -->
+        <div class="world-hud">
+            <div class="hud-left">
+                <button class="hud-btn" onclick="showScreen('screen-profiles')">← Wissel</button>
+                <div class="hud-player">
+                    <span id="world-player-name" class="hud-name"></span>
+                    <span id="world-player-level" class="hud-level"></span>
+                    <div class="hud-xp"><div class="hud-xp-fill" id="world-xp-fill"></div></div>
                 </div>
             </div>
-            <div class="world-resources-bar" id="world-resources-bar"></div>
+            <div class="hud-center">
+                <div class="hud-resources" id="world-resources-bar"></div>
+            </div>
+            <div class="hud-right">
+                <span id="world-wpm" class="hud-stat">0 WPM</span>
+                <span id="world-streak" class="hud-stat">🔥 0</span>
+            </div>
         </div>
 
-        <!-- The Village -->
-        <div class="village-container" id="village-container">
-            <div class="village-sky" id="village-sky"></div>
-            <div class="village-scene" id="village-scene"></div>
-        </div>
+        <!-- 3D City container — fullscreen -->
+        <div class="city-container" id="city-container"></div>
 
         <!-- Bottom action bar -->
-        <div class="world-actions">
-            <div class="world-stats-mini">
-                <span id="world-wpm">0 WPM</span>
-                <span id="world-streak">🔥 0</span>
-            </div>
-            <div class="world-buttons">
-                <button class="btn-minecraft btn-primary btn-build" id="btn-build" onclick="openBuildMenu()">
-                    <span class="btn-icon">⛏</span> Bouwen!
-                </button>
-                <button class="btn-minecraft btn-small" onclick="showFamilyBoard()">🏆</button>
-                <button class="btn-minecraft btn-small" onclick="showInventory()">🎒</button>
-            </div>
+        <div class="world-action-bar">
+            <button class="btn-minecraft btn-small" onclick="showFamilyBoard()">🏆</button>
+            <button class="btn-minecraft btn-primary btn-build" id="btn-build" onclick="openBuildMenu()">
+                <span class="btn-icon">⛏</span> Bouwen!
+            </button>
+            <button class="btn-minecraft btn-small" onclick="showInventory()">🎒</button>
         </div>
 
         <!-- Daily reward popup -->
@@ -96,8 +94,8 @@
         <div class="build-menu-popup" id="build-menu-popup" style="display:none">
             <div class="build-menu-inner">
                 <div class="build-menu-header">
-                    <h2>Wat wil je bouwen?</h2>
-                    <button class="btn-back" onclick="closeBuildMenu()">✕</button>
+                    <h2>⛏ Kies een gebouw</h2>
+                    <button class="btn-close" onclick="closeBuildMenu()">✕</button>
                 </div>
                 <div class="build-projects-list" id="build-projects-list"></div>
             </div>
@@ -107,16 +105,12 @@
         <div class="event-popup" id="event-popup" style="display:none"></div>
     </div>
 
-    <!-- SCREEN: Player Menu (kept for legacy, redirects to world) -->
-    <div id="screen-menu" class="screen">
-    </div>
-
     <!-- SCREEN: Typing / Building -->
     <div id="screen-lesson" class="screen">
         <div class="lesson-header">
             <button class="btn-back" onclick="endLesson()">← Pauze</button>
             <div class="lesson-info">
-                <span id="lesson-title">Bouwen: Houten Hut</span>
+                <span id="lesson-title">Bouwen</span>
                 <span id="lesson-biome-badge" class="biome-badge">Plains</span>
             </div>
             <div class="lesson-stats-bar">
@@ -125,7 +119,8 @@
                 <span id="live-timer">0:00</span>
             </div>
         </div>
-        <!-- Building visualization while typing -->
+
+        <!-- Building visualization — isometric preview -->
         <div class="build-visual" id="build-visual">
             <div class="build-structure" id="build-structure"></div>
             <div class="build-info">
@@ -136,6 +131,7 @@
                 <span class="build-pct" id="build-pct">0%</span>
             </div>
         </div>
+
         <div class="lesson-area">
             <div class="mob-area" id="mob-area"></div>
             <div class="text-display" id="text-display"></div>
@@ -182,7 +178,7 @@
     <!-- SCREEN: Inventory -->
     <div id="screen-inventory" class="screen">
         <div class="inventory-header">
-            <button class="btn-back" onclick="showScreen('screen-menu')">← Terug</button>
+            <button class="btn-back" onclick="showScreen('screen-world')">← Terug</button>
             <h2>Inventaris</h2>
         </div>
         <div class="inventory-grid" id="inventory-grid"></div>
@@ -192,21 +188,12 @@
     <!-- SCREEN: Family Scoreboard -->
     <div id="screen-family" class="screen">
         <div class="family-header">
-            <button class="btn-back" onclick="showScreen('screen-menu')">← Terug</button>
+            <button class="btn-back" onclick="showScreen('screen-world')">← Terug</button>
             <h2>Familie Scorebord</h2>
         </div>
         <div class="family-streak" id="family-streak"></div>
         <div class="family-scores" id="family-scores"></div>
         <div class="shared-build" id="shared-build"></div>
-    </div>
-
-    <!-- SCREEN: Daily Challenge -->
-    <div id="screen-daily" class="screen">
-        <div class="daily-header">
-            <button class="btn-back" onclick="showScreen('screen-menu')">← Terug</button>
-            <h2>Dagelijkse Uitdaging</h2>
-        </div>
-        <div class="daily-content" id="daily-content"></div>
     </div>
 
     <!-- SCREEN: Parent Dashboard -->
@@ -246,6 +233,7 @@
     <script src="js/engine.js"></script>
     <script src="js/sounds.js"></script>
     <script src="js/world.js"></script>
+    <script src="js/city3d.js"></script>
     <script src="js/game.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/app.js"></script>
