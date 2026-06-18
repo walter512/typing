@@ -343,9 +343,15 @@ function getWordsForProject(project, playerAge) {
 
 function generateBuildingText(project, playerAge) {
     const words = getWordsForProject(project, playerAge);
-    // Generate enough text for about 2 minutes of typing
-    const count = playerAge <= 8 ? 8 : playerAge <= 11 ? 15 : 20;
-    return words.slice(0, count).join(' ');
+    // Generate enough text for a 3-5 minute session
+    // Each word = 1 block placed, so this also controls blocks per session
+    const count = playerAge <= 8 ? 25 : playerAge <= 11 ? 40 : 55;
+    // If we need more words than available, cycle through them
+    const result = [];
+    for (let i = 0; i < count; i++) {
+        result.push(words[i % words.length]);
+    }
+    return result.join(' ');
 }
 
 /* ===== Render Village Grid ===== */

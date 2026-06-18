@@ -675,26 +675,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (!result.isComplete) highlightKey(engineState.chars[engineState.pos]);
 
-                    // Place a block for each correct character!
-                    if (currentProject) {
-                        const blockResult = placeBlock(currentPlayer);
-                        if (blockResult && blockResult.placed) {
-                            addBuildBlock(currentProject.color);
-                            updateBuildProgress();
-
-                            if (blockResult.completed) {
-                                // Building done! Stop typing immediately
-                                soundLevelUp();
-                                finishLesson();
-                                return;
-                            }
-                        }
-                    }
-
-                    // Word complete
+                    // Word complete — place a block per word
                     if (result.typed === ' ' || result.isComplete) {
                         soundWordComplete();
                         wordCount++;
+
+                        if (currentProject) {
+                            const blockResult = placeBlock(currentPlayer);
+                            if (blockResult && blockResult.placed) {
+                                addBuildBlock(currentProject.color);
+                                updateBuildProgress();
+
+                                if (blockResult.completed) {
+                                    soundLevelUp();
+                                    finishLesson();
+                                    return;
+                                }
+                            }
+                        }
 
                         // XP multiplier decay
                         if (currentPlayer.world.xpMultiplierWords > 0) {
@@ -946,6 +944,19 @@ function showResults(stats, xpGained, newAchievements, leveledUp) {
         errors.forEach(([key, count]) => {
             keysDiv.innerHTML += `<span class="problem-key">${key} (${count}x)</span>`;
         });
+    }
+
+    // Update continue button based on building state
+    const continueBtn = document.querySelector('#screen-results .btn-primary');
+    if (continueBtn) {
+        const building = currentProject ? currentPlayer.world.buildings.find(b => b.projectId === currentProject.id) : null;
+        if (building && building.completed) {
+            continueBtn.textContent = '🏗️ Nieuw Gebouw!';
+            continueBtn.onclick = () => { currentPlayer.world.activeProject = null; openBuildMenu(); };
+        } else {
+            continueBtn.textContent = '⛏ Verder Bouwen!';
+            continueBtn.onclick = continueBuild;
+        }
     }
 
     showScreen('screen-results');
