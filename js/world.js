@@ -315,8 +315,8 @@ function rollRandomEvent(player) {
 /* ===== Word Lists by Building Material (maps to key groups) ===== */
 
 function getWordsForProject(project, playerAge) {
-    const biome = project.biome;
-    const lessonSet = LESSON_SETS[biome];
+    const biomeIdx = project.biome;
+    const lessonSet = LESSON_SETS[biomeIdx];
     if (!lessonSet) return [];
 
     // Gather all words and sentences from this biome's lessons

@@ -44,7 +44,11 @@ async function selectProfile(playerId) {
     if (!currentPlayer.world.activeProject) {
         const available = getAvailableProjects(currentPlayer);
         if (available.length > 0) {
-            currentPlayer.world.activeProject = available[0].id;
+            const proj = available[0];
+            currentPlayer.world.activeProject = proj.id;
+            if (!currentPlayer.world.buildings.find(b => b.projectId === proj.id)) {
+                currentPlayer.world.buildings.push({ projectId: proj.id, blocksPlaced: 0, completed: false });
+            }
         }
     }
 
@@ -52,6 +56,15 @@ async function selectProfile(playerId) {
 
     // Show the world
     showScreen('screen-world');
+
+    // First-time tutorial
+    const isFirstTime = !currentPlayer.tutorialSeen;
+    if (isFirstTime) {
+        currentPlayer.tutorialSeen = true;
+        await savePlayer(currentPlayer);
+        setTimeout(() => showTutorial(), 500);
+        return; // Tutorial handles daily reward after
+    }
 
     // Show daily reward popup if new login
     if (loginResult.isNew && loginResult.reward) {
@@ -106,7 +119,7 @@ function updateWorldScreen() {
             btn.innerHTML = `<span class="btn-icon">⛏</span> ${project.name} Bouwen!`;
         }
     } else {
-        btn.innerHTML = `<span class="btn-icon">⛏</span> Kies een Bouwproject!`;
+        btn.innerHTML = `<span class="btn-icon">⛏</span> Kies wat je wilt bouwen!`;
     }
 
     // Render village
@@ -188,6 +201,45 @@ function renderVillage() {
 }
 
 /* ===== Daily Reward ===== */
+
+/* ===== First-Time Tutorial ===== */
+
+function showTutorial() {
+    const popup = document.getElementById('event-popup');
+    popup.style.display = 'block';
+    popup.innerHTML = `
+        <div class="tutorial-popup">
+            <div class="event-icon">🏘️</div>
+            <div class="event-name" style="font-size:16px; margin-bottom:12px">Welkom bij TypeCraft!</div>
+            <div style="font-size:11px; color:var(--text-secondary); line-height:1.8; text-align:left; max-width:320px; margin:0 auto">
+                <p style="margin-bottom:10px">
+                    <span style="color:var(--gold)">Jouw doel:</span> Bouw een heel dorp door te typen!
+                </p>
+                <p style="margin-bottom:10px">
+                    ⛏️ Kies een gebouw om te bouwen<br>
+                    ⌨️ Type de woorden om blokken te plaatsen<br>
+                    🏠 Elk gebouw maakt je dorp groter!
+                </p>
+                <p style="color:var(--diamond)">
+                    Hoe sneller en beter je typt, hoe meer je verdient!
+                </p>
+            </div>
+            <button class="btn-minecraft btn-primary" onclick="closeTutorial()" style="min-width:auto; margin-top:16px; justify-content:center">
+                ⛏️ Laten we bouwen!
+            </button>
+        </div>
+    `;
+    soundAchievement();
+}
+
+function closeTutorial() {
+    document.getElementById('event-popup').style.display = 'none';
+    // Now check daily reward
+    const loginResult = checkDailyLogin(currentPlayer);
+    if (loginResult.isNew && loginResult.reward) {
+        setTimeout(() => showDailyReward(loginResult), 300);
+    }
+}
 
 function showDailyReward(loginResult) {
     const popup = document.getElementById('daily-popup');
@@ -337,11 +389,18 @@ async function startBuildSession() {
     const project = BUILDING_PROJECTS.find(p => p.id === projectId);
     if (!project) return;
 
-    const building = currentPlayer.world.buildings.find(b => b.projectId === projectId);
+    let building = currentPlayer.world.buildings.find(b => b.projectId === projectId);
     if (building && building.completed) {
         openBuildMenu();
         showToast('Dit gebouw is al af! Kies een nieuw project.');
         return;
+    }
+
+    // Create building entry if it doesn't exist
+    if (!building) {
+        building = { projectId, blocksPlaced: 0, completed: false };
+        currentPlayer.world.buildings.push(building);
+        await savePlayer(currentPlayer);
     }
 
     currentProject = project;
@@ -398,12 +457,36 @@ async function startLesson() {
 function renderTextDisplay(text) {
     const display = document.getElementById('text-display');
     display.innerHTML = '';
-    text.split('').forEach((char, i) => {
-        const span = document.createElement('span');
-        span.className = `char ${i === 0 ? 'current' : 'pending'}`;
-        span.textContent = char === ' ' ? '\u00A0' : char;
-        span.dataset.index = i;
-        display.appendChild(span);
+
+    // Group chars into words to prevent mid-word line breaks
+    let charIndex = 0;
+    const words = text.split(' ');
+
+    words.forEach((word, wordIdx) => {
+        const wordSpan = document.createElement('span');
+        wordSpan.className = 'word';
+
+        // Add characters of the word
+        for (let c = 0; c < word.length; c++) {
+            const span = document.createElement('span');
+            span.className = `char ${charIndex === 0 ? 'current' : 'pending'}`;
+            span.textContent = word[c];
+            span.dataset.index = charIndex;
+            wordSpan.appendChild(span);
+            charIndex++;
+        }
+
+        display.appendChild(wordSpan);
+
+        // Add space between words (not after the last word)
+        if (wordIdx < words.length - 1) {
+            const spaceSpan = document.createElement('span');
+            spaceSpan.className = `char ${charIndex === 0 ? 'current' : 'pending'}`;
+            spaceSpan.textContent = '\u00A0';
+            spaceSpan.dataset.index = charIndex;
+            display.appendChild(spaceSpan);
+            charIndex++;
+        }
     });
 }
 
@@ -422,8 +505,16 @@ function updateTextDisplay(pos, isCorrect) {
             c.classList.add('current');
         }
     });
+    // Scroll to keep current character visible with next line showing
     if (pos < chars.length) {
-        chars[pos].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        const display = document.getElementById('text-display');
+        const charEl = chars[pos];
+        const charTop = charEl.offsetTop - display.offsetTop;
+        const lineHeight = charEl.offsetHeight * 2; // one line height
+        const scrollTarget = charTop - lineHeight; // keep current char one line from top
+        if (scrollTarget > display.scrollTop) {
+            display.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+        }
     }
 }
 
@@ -481,9 +572,10 @@ function updateBuildProgress() {
     if (!currentProject || !currentPlayer) return;
     const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject.id);
     if (!building) return;
-    const pct = Math.round((building.blocksPlaced / currentProject.blocksNeeded) * 100);
+    const pct = Math.min(100, Math.round((building.blocksPlaced / currentProject.blocksNeeded) * 100));
+    const remaining = Math.max(0, currentProject.blocksNeeded - building.blocksPlaced);
     document.getElementById('build-progress-fill').style.width = pct + '%';
-    document.getElementById('build-pct').textContent = pct + '%';
+    document.getElementById('build-pct').textContent = remaining > 0 ? `${pct}% — nog ${remaining} blokken` : '100% ✓';
 }
 
 /* ===== Random Events During Typing ===== */
@@ -591,8 +683,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             updateBuildProgress();
 
                             if (blockResult.completed) {
+                                // Building done! Stop typing immediately
                                 soundLevelUp();
-                                showToast(`🎉 ${currentProject.name} is af!`);
+                                finishLesson();
+                                return;
                             }
                         }
                     }
