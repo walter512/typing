@@ -421,12 +421,13 @@ async function startBuildSession() {
     biomeBadge.textContent = biome.name;
     biomeBadge.className = `biome-badge ${biome.id}`;
 
-    // Build visualization
+    // Build visualization — show full grid with contours
     document.getElementById('build-icon').textContent = project.icon;
     const buildPct = building ? Math.round((building.blocksPlaced / project.blocksNeeded) * 100) : 0;
     document.getElementById('build-progress-fill').style.width = buildPct + '%';
-    document.getElementById('build-pct').textContent = buildPct + '%';
-    document.getElementById('build-structure').innerHTML = '';
+    const remaining = Math.max(0, project.blocksNeeded - (building.blocksPlaced || 0));
+    document.getElementById('build-pct').textContent = remaining > 0 ? `${buildPct}% — nog ${remaining}` : '100% ✓';
+    initBuildGrid(project, building ? building.blocksPlaced : 0);
 
     renderTextDisplay(text);
     renderKeyboard('keyboard-visual');
@@ -549,23 +550,48 @@ function updateMobHealth(damageDealt) {
 
 /* ===== Build Visualization ===== */
 
+function initBuildGrid(project, blocksPlaced) {
+    const structure = document.getElementById('build-structure');
+    structure.innerHTML = '';
+
+    const total = project.blocksNeeded;
+    // Grid columns based on building width, scaled up
+    const cols = Math.max(4, project.width * 3);
+    const rows = Math.ceil(total / cols);
+
+    structure.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+    // Create all cells — filled from bottom-left, row by row
+    const cells = [];
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const idx = r * cols + c;
+            if (idx >= total) break;
+            const cell = document.createElement('div');
+            // Reverse row order: bottom rows first (build from ground up)
+            const visualRow = rows - 1 - r;
+            cell.style.order = visualRow * cols + c;
+            cell.className = 'build-cell empty';
+            cell.dataset.idx = idx;
+            structure.appendChild(cell);
+            cells.push(cell);
+        }
+    }
+
+    // Fill already-placed blocks
+    for (let i = 0; i < Math.min(blocksPlaced, cells.length); i++) {
+        cells[i].className = 'build-cell filled';
+        cells[i].style.background = project.color;
+    }
+}
+
 function addBuildBlock(color) {
     const structure = document.getElementById('build-structure');
-    const block = document.createElement('div');
-    block.className = 'build-block';
-    block.style.background = color;
-
-    // Stack blocks in a pattern
-    const blocks = structure.children.length;
-    const row = Math.floor(blocks / 8);
-    block.style.height = '6px';
-    block.style.width = '6px';
-
-    structure.appendChild(block);
-
-    // Keep only last 80 blocks visible
-    while (structure.children.length > 80) {
-        structure.removeChild(structure.firstChild);
+    const empty = structure.querySelector('.build-cell.empty');
+    if (empty) {
+        empty.className = 'build-cell filled';
+        empty.style.background = color;
+        empty.style.animation = 'block-pop 0.3s ease-out';
     }
 }
 
@@ -576,7 +602,7 @@ function updateBuildProgress() {
     const pct = Math.min(100, Math.round((building.blocksPlaced / currentProject.blocksNeeded) * 100));
     const remaining = Math.max(0, currentProject.blocksNeeded - building.blocksPlaced);
     document.getElementById('build-progress-fill').style.width = pct + '%';
-    document.getElementById('build-pct').textContent = remaining > 0 ? `${pct}% — nog ${remaining} blokken` : '100% ✓';
+    document.getElementById('build-pct').textContent = remaining > 0 ? `${pct}% — nog ${remaining}` : '100% ✓';
 }
 
 /* ===== Random Events During Typing ===== */
