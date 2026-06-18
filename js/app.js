@@ -42,7 +42,7 @@ async function selectProfile(playerId) {
 
     // Default active project if none set
     if (!currentPlayer.world.activeProject) {
-        const available = getAvailableProjects(currentPlayer);
+        const available = await getAvailableProjects(currentPlayer);
         if (available.length > 0) {
             const proj = available[0];
             currentPlayer.world.activeProject = proj.id;
@@ -126,10 +126,9 @@ function updateWorldScreen() {
     renderVillage();
 }
 
-function renderVillage() {
+async function renderVillage() {
     const scene = document.getElementById('village-scene');
     const sky = document.getElementById('village-sky');
-    const world = currentPlayer.world;
 
     // Add clouds to sky (only if not already there)
     if (!sky.querySelector('.cloud')) {
@@ -138,6 +137,17 @@ function renderVillage() {
             <div class="cloud" style="top:18%">☁️</div>
             <div class="cloud" style="top:5%">☁️</div>
         `;
+    }
+
+    // Load ALL players' buildings for the shared city
+    const allPlayerBuildings = [];
+    for (const [id, info] of Object.entries(PLAYERS)) {
+        const player = await getPlayer(id);
+        if (player && player.world && player.world.buildings) {
+            for (const b of player.world.buildings) {
+                allPlayerBuildings.push({ ...b, playerId: id, playerName: info.name });
+            }
+        }
     }
 
     let html = '';
@@ -160,15 +170,18 @@ function renderVillage() {
     }
     html += '</div>';
 
+    // Shared city progress
+    const completedCount = allPlayerBuildings.filter(b => b.completed).length;
+    const totalProjects = BUILDING_PROJECTS.length;
+    html += `<div class="city-progress">🏘️ Ons Dorp: ${completedCount}/${totalProjects} gebouwen</div>`;
+
     html += '<div class="village-buildings-container">';
 
-    // Show completed and in-progress buildings
-    const allBuildings = BUILDING_PROJECTS.filter(p =>
-        world.buildings.some(b => b.projectId === p.id)
-    );
+    // Gather unique building projects that anyone has started
+    const builtProjectIds = [...new Set(allPlayerBuildings.map(b => b.projectId))];
+    const builtProjects = builtProjectIds.map(id => BUILDING_PROJECTS.find(p => p.id === id)).filter(Boolean);
 
-    if (allBuildings.length === 0) {
-        // Empty village - show inviting build spots
+    if (builtProjects.length === 0) {
         html += `
             <div class="build-spot" onclick="openBuildMenu()">+</div>
             <div class="build-spot" onclick="openBuildMenu()" style="opacity:0.2">+</div>
@@ -176,22 +189,25 @@ function renderVillage() {
         `;
     }
 
-    allBuildings.forEach(project => {
-        const building = world.buildings.find(b => b.projectId === project.id);
+    builtProjects.forEach(project => {
+        const building = allPlayerBuildings.find(b => b.projectId === project.id);
         const isComplete = building && building.completed;
-        const isActive = world.activeProject === project.id;
+        const isActive = currentPlayer.world.activeProject === project.id;
         const pct = building ? Math.round((building.blocksPlaced / project.blocksNeeded) * 100) : 0;
+        const builderInitial = building.playerName.charAt(0);
+        const isOwn = building.playerId === currentPlayer.id;
 
         html += `<div class="village-building ${isComplete ? 'complete' : ''} ${isActive ? 'active' : ''}"
-                      onclick="${isComplete ? '' : `selectBuildProject('${project.id}')`}">
+                      onclick="${isOwn && !isComplete ? `selectBuildProject('${project.id}')` : ''}">
             <div class="building-sprite" style="opacity:${isComplete ? 1 : 0.3 + (pct / 100) * 0.7}">${project.icon}</div>
+            <div class="building-builder">${builderInitial}</div>
             ${!isComplete ? `<div class="building-progress-mini"><div class="building-progress-fill" style="width:${pct}%; background:${project.color}"></div></div>` : ''}
             <div class="building-label">${project.name}</div>
         </div>`;
     });
 
-    // Add build spot if there's room
-    const available = getAvailableProjects(currentPlayer);
+    // Add build spot if there's room for current player
+    const available = await getAvailableProjects(currentPlayer);
     if (available.length > 0) {
         html += `<div class="build-spot" onclick="openBuildMenu()">+</div>`;
     }
@@ -309,7 +325,7 @@ function closeDailyReward() {
 
 /* ===== Build Menu ===== */
 
-function openBuildMenu() {
+async function openBuildMenu() {
     // If there's an active project, start building instead of showing menu
     if (currentPlayer && currentPlayer.world.activeProject) {
         const building = currentPlayer.world.buildings.find(b => b.projectId === currentPlayer.world.activeProject);
@@ -323,27 +339,42 @@ function openBuildMenu() {
     popup.style.display = 'flex';
     soundButtonClick();
 
+    // Gather all buildings from all players to show shared city state
+    const claimedBy = {};
+    for (const [id, info] of Object.entries(PLAYERS)) {
+        const p = await getPlayer(id);
+        if (p && p.world && p.world.buildings) {
+            for (const b of p.world.buildings) {
+                claimedBy[b.projectId] = { ...b, playerName: info.name, playerId: id };
+            }
+        }
+    }
+
     const list = document.getElementById('build-projects-list');
     list.innerHTML = '';
 
     for (const project of BUILDING_PROJECTS) {
         const isUnlocked = currentPlayer.world.unlockedBiomes.includes(project.biome);
-        const building = currentPlayer.world.buildings.find(b => b.projectId === project.id);
-        const isComplete = building && building.completed;
-        const isInProgress = building && !building.completed;
-        const pct = building ? Math.round((building.blocksPlaced / project.blocksNeeded) * 100) : 0;
+        const claim = claimedBy[project.id];
+        const isOwn = claim && claim.playerId === currentPlayer.id;
+        const isOther = claim && claim.playerId !== currentPlayer.id;
+        const isComplete = claim && claim.completed;
+        const isInProgress = claim && !claim.completed;
+        const pct = claim ? Math.round((claim.blocksPlaced / project.blocksNeeded) * 100) : 0;
         const isActive = currentPlayer.world.activeProject === project.id;
+        const canSelect = isUnlocked && !isComplete && !isOther;
 
-        let stateClass = isComplete ? 'completed' : isInProgress ? 'in-progress' : !isUnlocked ? 'locked' : '';
+        let stateClass = isComplete ? 'completed' : isInProgress ? 'in-progress' : !isUnlocked ? 'locked' : isOther ? 'locked' : '';
 
         list.innerHTML += `
-            <div class="build-project-card ${stateClass}" onclick="${isUnlocked && !isComplete ? `selectBuildProject('${project.id}')` : ''}">
+            <div class="build-project-card ${stateClass}" onclick="${canSelect ? `selectBuildProject('${project.id}')` : ''}">
                 <div class="build-card-icon">${project.icon}</div>
                 <div class="build-card-name">${project.name} ${isActive ? '⛏️' : ''}</div>
                 <div class="build-card-desc">${project.desc}</div>
                 <div class="build-card-cost">${project.blocksNeeded} blokken nodig</div>
-                ${isComplete ? '<div style="color:var(--green); font-size:9px; margin-top:4px">✅ Voltooid!</div>' : ''}
-                ${isInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${pct}%; background:${project.color}"></div></div>` : ''}
+                ${isComplete ? `<div style="color:var(--green); font-size:9px; margin-top:4px">✅ Gebouwd door ${claim.playerName}</div>` : ''}
+                ${isOther && !isComplete ? `<div style="color:var(--gold); font-size:9px; margin-top:4px">⛏️ ${claim.playerName} bouwt hieraan (${pct}%)</div>` : ''}
+                ${isOwn && isInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${pct}%; background:${project.color}"></div></div>` : ''}
                 ${!isUnlocked ? '<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Unlock meer biomes</div>' : ''}
             </div>
         `;

@@ -1637,6 +1637,33 @@ body {
     color: var(--gold);
 }
 
+.building-builder {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    font-size: 9px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0,0,0,0.3);
+    text-shadow: none;
+}
+
+.city-progress {
+    text-align: center;
+    font-family: var(--font-mc);
+    font-size: 11px;
+    color: var(--gold);
+    padding: 4px 0;
+    text-shadow: 1px 1px 0 #000;
+}
+
 /* Empty build spot */
 .build-spot {
     width: 48px;

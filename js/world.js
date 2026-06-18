@@ -250,13 +250,20 @@ function calculatePassiveResources(player) {
 
 /* ===== Building System ===== */
 
-function getAvailableProjects(player) {
-    const completed = player.world.buildings.filter(b => b.completed).map(b => b.projectId);
-    const inProgress = player.world.buildings.filter(b => !b.completed).map(b => b.projectId);
+async function getAvailableProjects(player) {
+    // Collect all project IDs already claimed by ANY player
+    const takenIds = new Set();
+    for (const id of Object.keys(PLAYERS)) {
+        const p = await getPlayer(id);
+        if (p && p.world && p.world.buildings) {
+            for (const b of p.world.buildings) {
+                takenIds.add(b.projectId);
+            }
+        }
+    }
 
     return BUILDING_PROJECTS.filter(p => {
-        if (completed.includes(p.id)) return false;
-        if (inProgress.includes(p.id)) return false;
+        if (takenIds.has(p.id)) return false;
         return player.world.unlockedBiomes.includes(p.biome);
     });
 }
