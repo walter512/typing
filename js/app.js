@@ -676,21 +676,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (!result.isComplete) highlightKey(engineState.chars[engineState.pos]);
 
-                    // Word complete — place a block per word
+                    // Word complete — place 2 blocks per word (building finishes halfway)
                     if (result.typed === ' ' || result.isComplete) {
                         soundWordComplete();
                         wordCount++;
 
                         if (currentProject) {
-                            const blockResult = placeBlock(currentPlayer);
-                            if (blockResult && blockResult.placed) {
-                                addBuildBlock(currentProject.color);
-                                updateBuildProgress();
+                            for (let bi = 0; bi < 2; bi++) {
+                                const blockResult = placeBlock(currentPlayer);
+                                if (blockResult && blockResult.placed) {
+                                    addBuildBlock(currentProject.color);
+                                    updateBuildProgress();
 
-                                if (blockResult.completed) {
-                                    soundLevelUp();
-                                    finishLesson();
-                                    return;
+                                    if (blockResult.completed) {
+                                        soundLevelUp();
+                                        finishLesson();
+                                        return;
+                                    }
                                 }
                             }
                         }
