@@ -9,43 +9,43 @@ const LESSON_SETS = [
                 title: 'Les 1: De Thuisrij - Links',
                 desc: 'Leer de linker thuisrij: A S D F',
                 keys: ['a', 's', 'd', 'f'],
-                words: ['as', 'af', 'das', 'fda', 'sad', 'fas', 'dad', 'add', 'ads', 'asd', 'sdf', 'fads', 'dads', 'safs'],
+                words: ['as', 'af', 'das', 'ff', 'dd', 'ss', 'aa', 'fd', 'sa', 'df', 'as as', 'af af', 'das das', 'afs', 'daf', 'fas', 'fad'],
                 sentences: []
             },
             {
                 title: 'Les 2: De Thuisrij - Rechts',
-                desc: 'Leer de rechter thuisrij: J K L ;',
-                keys: ['j', 'k', 'l', ';'],
-                words: ['jl', 'kl', 'lk', 'jk', 'lj', 'kj', 'klk', 'jkl', 'ljk', 'kjl'],
+                desc: 'Leer de rechter thuisrij: J K L',
+                keys: ['j', 'k', 'l'],
+                words: ['jjj', 'kkk', 'lll', 'jkl', 'lkj', 'jlk', 'kjl', 'jk jk', 'kl kl', 'jl jl', 'lk lk', 'jkl jkl', 'lkj lkj'],
                 sentences: []
             },
             {
                 title: 'Les 3: Thuisrij Samen',
                 desc: 'Combineer beide handen op de thuisrij',
                 keys: ['a', 's', 'd', 'f', 'j', 'k', 'l'],
-                words: ['dal', 'jas', 'kas', 'laf', 'sla', 'als', 'las', 'klas', 'slag', 'flads', 'jak', 'sjaal', 'kaas', 'salade'],
-                sentences: ['dal als jas', 'sla las als', 'kas jas dal']
+                words: ['al', 'dal', 'jas', 'kas', 'laf', 'sla', 'als', 'las', 'lak', 'klas', 'kaas', 'sjaal', 'fa', 'af'],
+                sentences: ['dal als kas', 'sla las als', 'kas jas dal', 'laf als kaas']
             },
             {
                 title: 'Les 4: Thuisrij - G en H',
                 desc: 'Voeg G en H toe aan je repertoire',
                 keys: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-                words: ['gaf', 'had', 'glas', 'half', 'slag', 'hash', 'haas', 'jag', 'glad', 'geld', 'held', 'klag', 'flag'],
-                sentences: ['half glas had', 'held slag gaf', 'glad als glas']
+                words: ['gaf', 'had', 'gas', 'gal', 'hal', 'hak', 'glas', 'half', 'slag', 'haas', 'glad', 'flag', 'gala', 'gaas'],
+                sentences: ['half glas had', 'glad als glas', 'haas gaf gas']
             },
             {
                 title: 'Les 5: Thuisrij Oefening',
                 desc: 'Oefen alle thuisrij letters met Nederlandse woorden',
                 keys: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-                words: ['jas', 'glas', 'half', 'slag', 'haas', 'glad', 'klas', 'flash', 'shag', 'laks', 'kaas', 'gaas', 'gal', 'hal', 'dal', 'sla', 'flag'],
+                words: ['jas', 'glas', 'half', 'slag', 'haas', 'glad', 'klas', 'kaas', 'gaas', 'gal', 'hal', 'dal', 'sla', 'flag', 'gas', 'hak', 'lak', 'gala', 'sjaal', 'gaf', 'had'],
                 sentences: ['als half glas', 'glad als haas', 'jas slag klas', 'had glas kaas']
             },
             {
                 title: 'Les 6: Thuisrij - Snelheid',
                 desc: 'Verhoog je snelheid op de thuisrij',
                 keys: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-                words: ['slag', 'glas', 'half', 'klas', 'glad', 'flash', 'haas', 'jas', 'kaas', 'hash', 'gaas', 'laks', 'shag'],
-                sentences: ['half glas kaas slag', 'glad jas als flash', 'klas had haas gaas', 'sla kaas glas half']
+                words: ['slag', 'glas', 'half', 'klas', 'glad', 'haas', 'jas', 'kaas', 'gaas', 'gala', 'sjaal', 'gaf', 'gas', 'hak', 'lak', 'hal', 'gal', 'dal'],
+                sentences: ['half glas kaas slag', 'glad jas als glas', 'klas had haas gaas', 'sla kaas glas half']
             }
         ]
     },
@@ -57,15 +57,15 @@ const LESSON_SETS = [
                 title: 'Les 7: Bovenste Rij - Links',
                 desc: 'Leer Q W E R T',
                 keys: ['q', 'w', 'e', 'r', 't', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-                words: ['weg', 'wet', 'red', 'werk', 'twee', 'weer', 'ter', 'trek', 'rest', 'ster', 'west', 'weet', 'tree'],
+                words: ['weg', 'wet', 'red', 'werk', 'twee', 'weer', 'ter', 'trek', 'rest', 'ster', 'west', 'weet', 'ster', 'dreef', 'wer'],
                 sentences: ['twee ster werk', 'weer wet rest']
             },
             {
                 title: 'Les 8: Bovenste Rij - Rechts',
                 desc: 'Leer Y U I O P',
                 keys: ['y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-                words: ['ook', 'uit', 'ooit', 'pui', 'jou', 'oud', 'poi', 'oil', 'july', 'dip', 'tip', 'hip', 'lip'],
-                sentences: ['ook uit oud', 'jou dip tip']
+                words: ['ook', 'jou', 'oud', 'dip', 'hip', 'lip', 'koud', 'goud', 'huid', 'huis', 'klok', 'kuil', 'pijl', 'spook', 'ooi'],
+                sentences: ['ook jou oud goud', 'koud huis klok']
             },
             {
                 title: 'Les 9: Hele Bovenste Rij',
@@ -92,7 +92,7 @@ const LESSON_SETS = [
                 title: 'Les 12: Forest Boss',
                 desc: 'Versla de Creeper met je typsnelheid!',
                 keys: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-                words: ['spiegel', 'dreitig', 'krijger', 'rustiek', 'strijd', 'heilig', 'gebruik', 'toerist', 'ploetig', 'welkop'],
+                words: ['spiegel', 'krijger', 'rustiek', 'strijd', 'heilig', 'gebruik', 'toerist', 'ridder', 'gieter', 'sterker'],
                 sentences: ['de krijger was sterk', 'gebruik de spiegel', 'strijd is heilig', 'de toerist loopt door'],
                 mob: { name: 'Creeper', icon: '💚', hp: 10 }
             }
