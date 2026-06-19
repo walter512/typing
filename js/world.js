@@ -138,60 +138,45 @@ function calculatePassiveResources(player) {
 /* ===== Building System ===== */
 
 async function getAvailableProjects(player) {
+    // If player already has an active unfinished building, only show that one
+    if (player.world.activeProject) {
+        const activeBld = player.world.buildings.find(b => b.projectId === player.world.activeProject && !b.completed);
+        if (activeBld) {
+            const proj = BUILDING_PROJECTS.find(p => p.id === activeBld.projectId);
+            return proj ? [proj] : [];
+        }
+    }
+
     // Load all player data to compute layer statuses
     const playerDataMap = {};
     for (const id of Object.keys(PLAYERS)) {
         playerDataMap[id] = await getPlayer(id);
     }
 
-    // Find which layer the player should be on:
-    // the first layer where the player has no completed building
-    let targetLayerIdx = 0;
+    // Find the player's target layer: first unlocked layer where they have no completed building
+    const available = [];
     for (let i = 0; i < CITY_LAYERS.length; i++) {
+        const status = getLayerStatus(i, playerDataMap);
+        if (!status.unlocked) continue;
+
         const layer = CITY_LAYERS[i];
         const playerHasCompleted = layer.buildings.some(b => {
             const bld = player.world.buildings.find(x => x.projectId === b.id);
             return bld && bld.completed;
         });
-        if (!playerHasCompleted) {
-            targetLayerIdx = i;
-            break;
-        }
-        if (i === CITY_LAYERS.length - 1) targetLayerIdx = i;
-    }
+        if (playerHasCompleted) continue; // already done this layer
 
-    // Get layer status for target layer
-    const status = getLayerStatus(targetLayerIdx, playerDataMap);
-    if (!status.unlocked) {
-        // Try one layer below
-        if (targetLayerIdx > 0) {
-            const prevStatus = getLayerStatus(targetLayerIdx - 1, playerDataMap);
-            if (prevStatus.unlocked) {
-                const prevLayer = CITY_LAYERS[targetLayerIdx - 1];
-                return prevLayer.buildings
-                    .filter(b => {
-                        // not claimed by another player, or is already the player's own
-                        const claim = prevStatus.claims[b.id];
-                        return !claim || claim.playerId === player.id;
-                    })
-                    .map(b => BUILDING_PROJECTS.find(p => p.id === b.id))
-                    .filter(Boolean);
+        // Show available buildings in this layer (unclaimed or player's own)
+        for (const b of layer.buildings) {
+            const claim = status.claims[b.id];
+            if (!claim || (claim.playerId === player.id && !claim.completed)) {
+                const proj = BUILDING_PROJECTS.find(p => p.id === b.id);
+                if (proj) available.push(proj);
             }
         }
-        return [];
+        break; // only show one layer at a time
     }
-
-    const targetLayer = CITY_LAYERS[targetLayerIdx];
-    return targetLayer.buildings
-        .filter(b => {
-            const claim = status.claims[b.id];
-            // Available if: unclaimed, or claimed by this player (and not complete)
-            if (!claim) return true;
-            if (claim.playerId === player.id && !claim.completed) return true;
-            return false;
-        })
-        .map(b => BUILDING_PROJECTS.find(p => p.id === b.id))
-        .filter(Boolean);
+    return available;
 }
 
 function getBuildingProgress(player, projectId) {

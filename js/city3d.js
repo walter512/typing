@@ -326,22 +326,48 @@ function getPlayerColor(playerId) {
     return colors[playerId] || '#888';
 }
 
+/* ===== Layer Unlock Config ===== */
+// Each layer opens after N days since game start, OR immediately if all 3
+// players completed a building in the previous layer (whichever comes first).
+const LAYER_UNLOCK_DAYS = [0, 14, 28, 42, 56]; // days after game start
+
+function getGameStartDate(playerDataMap) {
+    // The earliest lastLogin across all players serves as game start
+    let earliest = null;
+    for (const pd of Object.values(playerDataMap)) {
+        if (pd && pd.world && pd.world.lastLogin) {
+            if (!earliest || pd.world.lastLogin < earliest) {
+                earliest = pd.world.lastLogin;
+            }
+        }
+    }
+    return earliest || getToday();
+}
+
 /* ===== Layer Status ===== */
 function getLayerStatus(layerIndex, playerDataMap) {
     const layer = CITY_LAYERS[layerIndex];
     if (!layer) return { unlocked: false, complete: false, claims: {} };
 
-    // Layer 0 is always unlocked; others unlock when all 3 players finished prev layer
+    // Layer 0 is always unlocked
     let unlocked = layerIndex === 0;
     if (layerIndex > 0) {
+        // Unlock method 1: time-based (every 2 weeks)
+        const startDate = getGameStartDate(playerDataMap);
+        const daysSinceStart = daysBetween(startDate, getToday());
+        const timeUnlocked = daysSinceStart >= (LAYER_UNLOCK_DAYS[layerIndex] || 999);
+
+        // Unlock method 2: all 3 players completed a building in the previous layer
         const prevLayer = CITY_LAYERS[layerIndex - 1];
-        unlocked = Object.values(playerDataMap).every(playerData => {
+        const allCompleted = Object.values(playerDataMap).every(playerData => {
             if (!playerData || !playerData.world || !playerData.world.buildings) return false;
             return prevLayer.buildings.some(b => {
                 const building = playerData.world.buildings.find(bld => bld.projectId === b.id);
                 return building && building.completed;
             });
         });
+
+        unlocked = timeUnlocked || allCompleted;
     }
 
     // Build claims map: buildingId -> { playerId, playerName, blocksPlaced, completed }
@@ -437,6 +463,15 @@ function renderBuildingSprite(building, blocksPlaced, blocksNeeded) {
 function handleBuildingClick(buildingId, layerIndex) {
     if (!currentPlayer) return;
 
+    // Check if player already has a different active unfinished building (1 at a time)
+    const hasActiveOther = currentPlayer.world.buildings.find(
+        b => b.projectId !== buildingId && !b.completed && currentPlayer.world.activeProject === b.projectId
+    );
+    if (hasActiveOther) {
+        showToast('⛏️ Maak eerst je huidige gebouw af!');
+        return;
+    }
+
     // Check if it's the player's building in progress
     const building = currentPlayer.world.buildings.find(b => b.projectId === buildingId);
     if (building && !building.completed) {
@@ -460,7 +495,7 @@ function handleBuildingClick(buildingId, layerIndex) {
     // Unclaimed — check if layer is unlocked, then claim it
     getLayerStatusForCurrentPlayer(layerIndex).then(status => {
         if (!status.unlocked) {
-            showToast('🔒 Voltooi eerst de vorige laag!');
+            showToast('🔒 Deze laag is nog niet geopend!');
             return;
         }
         // Check not claimed by another player
@@ -529,11 +564,16 @@ async function renderCity(containerId) {
         const status = layerStatuses[layerIdx];
 
         if (!status.unlocked) {
-            // Show locked bar
+            // Show locked bar with unlock info
+            const startDate = getGameStartDate(playerDataMap);
+            const daysLeft = Math.max(0, (LAYER_UNLOCK_DAYS[layerIdx] || 0) - daysBetween(startDate, getToday()));
             const prevLayer = layerIdx > 0 ? CITY_LAYERS[layerIdx - 1] : null;
+            const hintParts = [];
+            if (daysLeft > 0) hintParts.push(`Opent over ${daysLeft} dagen`);
+            if (prevLayer) hintParts.push(`of als alle 3 spelers ${prevLayer.name} voltooien`);
             html += `<div class="city-layer locked">
                 <div class="layer-lock">🔒 ${layer.icon} ${layer.name}</div>
-                ${prevLayer ? `<div class="layer-lock-hint">Voltooi ${prevLayer.name} met alle 3 spelers</div>` : ''}
+                ${hintParts.length ? `<div class="layer-lock-hint">${hintParts.join(' ')}</div>` : ''}
             </div>`;
         } else {
             // Render active/complete layer
