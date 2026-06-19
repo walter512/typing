@@ -650,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     // Show resource earned toast
                                     const resInfo = RESOURCES[currentProject.material];
                                     if (resInfo) showToast(`${resInfo.icon} +1 ${currentProject.material}!`);
-                                    soundBlockMine();
+                                    soundResourceEarned();
                                     if (blockResult.completed) {
                                         soundLevelUp();
                                         finishLesson();
@@ -913,16 +913,21 @@ function showResults(stats, xpGained, newAchievements, leveledUp) {
         });
     }
 
-    // Update continue button based on building state
-    const continueBtn = document.querySelector('#screen-results .btn-primary');
-    if (continueBtn) {
+    // Set result buttons based on building state
+    const btnDiv = document.getElementById('results-buttons');
+    if (btnDiv) {
         const building = currentProject ? currentPlayer.world.buildings.find(b => b.projectId === currentProject.id) : null;
         if (building && building.completed) {
-            continueBtn.textContent = '🏗️ Nieuw Gebouw!';
-            continueBtn.onclick = () => { currentPlayer.world.activeProject = null; openBuildMenu(); };
+            // Building is done — show celebration, go back to village
+            btnDiv.innerHTML = `
+                <button class="btn-minecraft btn-primary" onclick="showScreen('screen-world'); updateWorldScreen();">🏘️ Bekijk je Dorp!</button>
+            `;
         } else {
-            continueBtn.textContent = '⛏ Verder Bouwen!';
-            continueBtn.onclick = continueBuild;
+            // Building still in progress — continue or go back
+            btnDiv.innerHTML = `
+                <button class="btn-minecraft btn-primary" onclick="continueBuild()">⛏ Verder Bouwen!</button>
+                <button class="btn-minecraft" onclick="showScreen('screen-world')">🏘️ Terug naar Dorp</button>
+            `;
         }
     }
 

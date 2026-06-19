@@ -112,6 +112,13 @@ function soundCraft() {
     setTimeout(() => playTone(900, 0.1, 'square', 0.08), 160);
 }
 
+function soundResourceEarned() {
+    // Cheerful pickup sound — coin/item collect
+    playTone(784, 0.06, 'square', 0.1);
+    setTimeout(() => playTone(988, 0.06, 'square', 0.1), 70);
+    setTimeout(() => playTone(1175, 0.1, 'triangle', 0.08), 140);
+}
+
 function soundButtonClick() {
     playTone(600, 0.04, 'square', 0.06);
 }
