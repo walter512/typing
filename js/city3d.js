@@ -420,10 +420,10 @@ function renderDecoration(dec) {
                 <div class="tree-crown" style="left:${-w*0.2}px; top:${-18}px; width:${w*1.4}px; height:${w*1.1}px; background:radial-gradient(ellipse,#4a9e3e 0%,#3a7e30 60%,#2a6020 100%); border-radius:50%; position:absolute; opacity:0.85;"></div>
             </div>`;
         case 'flowers':
-            return `<div class="iso-decoration flowers" style="left:${pos.x}px; top:${pos.y}px; font-size:12px; position:absolute; pointer-events:none; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3));">
-                <span style="position:absolute; left:2px; top:-4px;">🌸</span>
-                <span style="position:absolute; left:12px; top:-8px;">🌼</span>
-                <span style="position:absolute; left:6px; top:2px;">🌺</span>
+            return `<div class="iso-decoration flowers" style="left:${pos.x}px; top:${pos.y}px; font-size:8px; position:absolute; pointer-events:none; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3));">
+                <span style="position:absolute; left:1px; top:-2px;">🌸</span>
+                <span style="position:absolute; left:10px; top:-5px;">🌼</span>
+                <span style="position:absolute; left:5px; top:3px;">🌺</span>
             </div>`;
         case 'rock':
             return `<div class="iso-decoration" style="left:${pos.x}px; top:${pos.y}px;">
