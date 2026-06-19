@@ -2,118 +2,8 @@
 /* The world is a visual village that grows as you type. */
 /* Each building is a project you choose. Typing places blocks. */
 
-const BUILDING_PROJECTS = [
-    // Tier 1 - Plains (home row)
-    {
-        id: 'hut', name: 'Houten Hut', icon: '🏠', biome: 0,
-        desc: 'Je eerste schuilplaats tegen de monsters!',
-        blocksNeeded: 40, material: 'hout', color: '#8d6e63',
-        width: 4, height: 3, unlocked: true,
-        reward: { xp: 50, item: 'houten_zwaard' }
-    },
-    {
-        id: 'werkbank', name: 'Werkbank', icon: '🔨', biome: 0,
-        desc: 'Craft betere gereedschappen!',
-        blocksNeeded: 30, material: 'hout', color: '#a1887f',
-        width: 2, height: 2, unlocked: true,
-        reward: { xp: 40, item: null }
-    },
-    {
-        id: 'hek', name: 'Houten Hek', icon: '🪵', biome: 0,
-        desc: 'Bescherm je dorp tegen mobs!',
-        blocksNeeded: 50, material: 'hout', color: '#795548',
-        width: 6, height: 1, unlocked: true,
-        reward: { xp: 60, item: null }
-    },
-    {
-        id: 'farm', name: 'Boerderij', icon: '🌾', biome: 0,
-        desc: 'Verbouw voedsel voor je dorp.',
-        blocksNeeded: 45, material: 'hout', color: '#c8e6c9',
-        width: 4, height: 2, unlocked: true,
-        reward: { xp: 55, item: null }
-    },
-    // Tier 2 - Forest (top row)
-    {
-        id: 'stenen_huis', name: 'Stenen Huis', icon: '🏗️', biome: 1,
-        desc: 'Sterker dan hout, veiliger tegen creepers!',
-        blocksNeeded: 80, material: 'steen', color: '#9e9e9e',
-        width: 5, height: 4, unlocked: false,
-        reward: { xp: 120, item: 'stenen_pickaxe' }
-    },
-    {
-        id: 'bibliotheek', name: 'Bibliotheek', icon: '📚', biome: 1,
-        desc: 'Leer enchantments en toverspreuken!',
-        blocksNeeded: 60, material: 'steen', color: '#8d6e63',
-        width: 3, height: 3, unlocked: false,
-        reward: { xp: 100, item: null }
-    },
-    {
-        id: 'smederij', name: 'Smederij', icon: '⚒️', biome: 1,
-        desc: 'Smeed wapens van ijzer en staal!',
-        blocksNeeded: 70, material: 'steen', color: '#616161',
-        width: 3, height: 3, unlocked: false,
-        reward: { xp: 110, item: 'ijzeren_harnas' }
-    },
-    {
-        id: 'wachttoren', name: 'Wachttoren', icon: '🗼', biome: 1,
-        desc: 'Zie vijanden van ver aankomen!',
-        blocksNeeded: 90, material: 'steen', color: '#78909c',
-        width: 2, height: 6, unlocked: false,
-        reward: { xp: 130, item: null }
-    },
-    // Tier 3 - Desert (bottom row)
-    {
-        id: 'piramide', name: 'Piramide', icon: '🔺', biome: 2,
-        desc: 'Een monumentaal bouwwerk vol schatten!',
-        blocksNeeded: 120, material: 'zandsteen', color: '#f9a825',
-        width: 6, height: 5, unlocked: false,
-        reward: { xp: 200, item: 'gouden_helm' }
-    },
-    {
-        id: 'oase', name: 'Oase', icon: '🌴', biome: 2,
-        desc: 'Water in de woestijn, leven in de droogte!',
-        blocksNeeded: 60, material: 'zandsteen', color: '#4fc3f7',
-        width: 4, height: 2, unlocked: false,
-        reward: { xp: 100, item: null }
-    },
-    {
-        id: 'markt', name: 'Handelsmarkt', icon: '🏪', biome: 2,
-        desc: 'Handel met rondtrekkende kooplieden!',
-        blocksNeeded: 80, material: 'zandsteen', color: '#ffcc80',
-        width: 4, height: 3, unlocked: false,
-        reward: { xp: 140, item: null }
-    },
-    // Tier 4 - Nether (capitals/punctuation)
-    {
-        id: 'nether_poort', name: 'Nether Portaal', icon: '🟣', biome: 3,
-        desc: 'Open een portaal naar de Nether!',
-        blocksNeeded: 100, material: 'obsidiaan', color: '#4a148c',
-        width: 4, height: 5, unlocked: false,
-        reward: { xp: 250, item: 'enchanted_boog' }
-    },
-    {
-        id: 'vesting', name: 'Nether Vesting', icon: '🏰', biome: 3,
-        desc: 'Een onneembaar fort in de Nether!',
-        blocksNeeded: 150, material: 'netherbrick', color: '#b71c1c',
-        width: 6, height: 5, unlocked: false,
-        reward: { xp: 300, item: null }
-    },
-    // Tier 5 - The End (numbers/symbols)
-    {
-        id: 'end_toren', name: 'End Toren', icon: '🗽', biome: 4,
-        desc: 'De ultieme structuur in The End!',
-        blocksNeeded: 200, material: 'endsteen', color: '#e8eaf6',
-        width: 4, height: 8, unlocked: false,
-        reward: { xp: 500, item: 'beacon' }
-    },
-    {
-        id: 'drakentroon', name: 'Drakentroon', icon: '🐉', biome: 4,
-        desc: 'Een troon gemaakt van drakenbeenderen!',
-        blocksNeeded: 180, material: 'endsteen', color: '#ce93d8',
-        width: 5, height: 5, unlocked: false,
-        reward: { xp: 500, item: 'diamanten_zwaard' }
-    }
-];
+/* NOTE: BUILDING_PROJECTS is now generated from CITY_LAYERS in city3d.js */
+/* This file uses BUILDING_PROJECTS after city3d.js is loaded. */
 
 const RANDOM_EVENTS = [
     // Positive events
@@ -236,11 +126,8 @@ function calculatePassiveResources(player) {
         // Each completed building generates 1 resource per 6 hours
         const amount = Math.floor(hoursSince / 6);
         if (amount > 0) {
-            const res = project.material === 'zandsteen' ? 'steen' :
-                        project.material === 'obsidiaan' ? 'ijzer' :
-                        project.material === 'netherbrick' ? 'ijzer' :
-                        project.material === 'endsteen' ? 'goud' :
-                        project.material;
+            // Materials are now: hout, steen, ijzer, goud, diamant
+            const res = project.material || 'hout';
             passive[res] = (passive[res] || 0) + amount;
         }
     }
@@ -251,21 +138,60 @@ function calculatePassiveResources(player) {
 /* ===== Building System ===== */
 
 async function getAvailableProjects(player) {
-    // Collect all project IDs already claimed by ANY player
-    const takenIds = new Set();
+    // Load all player data to compute layer statuses
+    const playerDataMap = {};
     for (const id of Object.keys(PLAYERS)) {
-        const p = await getPlayer(id);
-        if (p && p.world && p.world.buildings) {
-            for (const b of p.world.buildings) {
-                takenIds.add(b.projectId);
-            }
-        }
+        playerDataMap[id] = await getPlayer(id);
     }
 
-    return BUILDING_PROJECTS.filter(p => {
-        if (takenIds.has(p.id)) return false;
-        return player.world.unlockedBiomes.includes(p.biome);
-    });
+    // Find which layer the player should be on:
+    // the first layer where the player has no completed building
+    let targetLayerIdx = 0;
+    for (let i = 0; i < CITY_LAYERS.length; i++) {
+        const layer = CITY_LAYERS[i];
+        const playerHasCompleted = layer.buildings.some(b => {
+            const bld = player.world.buildings.find(x => x.projectId === b.id);
+            return bld && bld.completed;
+        });
+        if (!playerHasCompleted) {
+            targetLayerIdx = i;
+            break;
+        }
+        if (i === CITY_LAYERS.length - 1) targetLayerIdx = i;
+    }
+
+    // Get layer status for target layer
+    const status = getLayerStatus(targetLayerIdx, playerDataMap);
+    if (!status.unlocked) {
+        // Try one layer below
+        if (targetLayerIdx > 0) {
+            const prevStatus = getLayerStatus(targetLayerIdx - 1, playerDataMap);
+            if (prevStatus.unlocked) {
+                const prevLayer = CITY_LAYERS[targetLayerIdx - 1];
+                return prevLayer.buildings
+                    .filter(b => {
+                        // not claimed by another player, or is already the player's own
+                        const claim = prevStatus.claims[b.id];
+                        return !claim || claim.playerId === player.id;
+                    })
+                    .map(b => BUILDING_PROJECTS.find(p => p.id === b.id))
+                    .filter(Boolean);
+            }
+        }
+        return [];
+    }
+
+    const targetLayer = CITY_LAYERS[targetLayerIdx];
+    return targetLayer.buildings
+        .filter(b => {
+            const claim = status.claims[b.id];
+            // Available if: unclaimed, or claimed by this player (and not complete)
+            if (!claim) return true;
+            if (claim.playerId === player.id && !claim.completed) return true;
+            return false;
+        })
+        .map(b => BUILDING_PROJECTS.find(p => p.id === b.id))
+        .filter(Boolean);
 }
 
 function getBuildingProgress(player, projectId) {
@@ -348,12 +274,16 @@ function getWordsForProject(project, playerAge) {
     return allTexts;
 }
 
+// 1 resource earned per WORDS_PER_RESOURCE words typed
+const WORDS_PER_RESOURCE = 8;
+
 function generateBuildingText(project, playerAge, blocksRemaining) {
     const words = getWordsForProject(project, playerAge);
-    // Generate as many words as remaining blocks
-    // Each word places 2 blocks, so building completes around halfway
-    const minWords = playerAge <= 8 ? 10 : 15;
-    const count = Math.max(minWords, blocksRemaining || project.blocksNeeded);
+    // Generate enough words for all remaining resources
+    // 1 resource per 8 words, so total words = blocksRemaining * WORDS_PER_RESOURCE
+    const minWords = playerAge <= 8 ? 16 : 24;
+    const remaining = blocksRemaining || project.blocksNeeded;
+    const count = Math.max(minWords, remaining * WORDS_PER_RESOURCE);
     const result = [];
     for (let i = 0; i < count; i++) {
         result.push(words[i % words.length]);

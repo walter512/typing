@@ -1,564 +1,608 @@
-/* ===== TypeCraft 3D Isometric City Renderer ===== */
-/* Renders a shared Minecraft-style city using CSS isometric projection */
+/* ===== TypeCraft 2D City Renderer ===== */
+/* Renders a shared Minecraft-style city as a 2D side-view with stacking layers */
 
-const ISO = {
-    BLOCK_W: 32,   // isometric block width
-    BLOCK_H: 16,   // isometric block height (half width for true iso)
-    BLOCK_D: 20,   // block depth (visible side height)
-    GROUND_COLS: 20,
-    GROUND_ROWS: 12,
+/* ===== Block Colors ===== */
+const BLOCK_COLORS = {
+    oak_planks:   '#b8945f',
+    oak_log:      '#5c4633',
+    cobblestone:  '#7a7a7a',
+    stone_brick:  '#8a8a8a',
+    glass:        '#aad7e6',
+    door:         '#6b4226',
+    roof_oak:     '#8d5524',
+    roof_stone:   '#606060',
+    hay:          '#c8a83e',
+    water:        '#4090d0',
+    dirt:         '#8b6c42',
+    grass:        '#5d9e37',
+    fence:        '#9e7e4a',
+    bookshelf:    '#6b4226',
+    crafting:     '#8b6c42',
+    furnace:      '#5a5a5a',
+    anvil:        '#444444',
+    iron_block:   '#d8d8d8',
+    gold_block:   '#f5d63d',
+    diamond_block:'#54e5cc',
+    obsidian:     '#1a0a2e',
+    nether_brick: '#3a1e1e',
+    end_stone:    '#dbd5a0',
+    purpur:       '#a77ba7',
+    lava:         '#e05500',
+    red_wool:     '#a02020',
+    torch:        '#ffcc00',
 };
 
-// Minecraft block palette — CSS colors for top/left/right faces
-const BLOCK_TYPES = {
-    oak_planks:   { top: '#b8945f', left: '#96763a', right: '#a6843e', label: 'Eiken Planken' },
-    oak_log:      { top: '#a68a53', left: '#4a3728', right: '#5c4633', label: 'Eiken Stam' },
-    cobblestone:  { top: '#7a7a7a', left: '#5c5c5c', right: '#6a6a6a', label: 'Kasseien' },
-    stone_brick:  { top: '#8a8a8a', left: '#6e6e6e', right: '#7a7a7a', label: 'Steenbakstenen' },
-    sandstone:    { top: '#e8d5a3', left: '#c4a96e', right: '#d4bb82', label: 'Zandsteen' },
-    nether_brick: { top: '#3a1e1e', left: '#2c1515', right: '#331a1a', label: 'Netherbaksteen' },
-    obsidian:     { top: '#1a0a2e', left: '#0d0518', right: '#120720', label: 'Obsidiaan' },
-    end_stone:    { top: '#dbd5a0', left: '#c4be8a', right: '#cfc993', label: 'Endsteen' },
-    purpur:       { top: '#a77ba7', left: '#8a5e8a', right: '#996b99', label: 'Purpur' },
-    glass:        { top: 'rgba(170,215,230,0.45)', left: 'rgba(140,185,200,0.35)', right: 'rgba(155,200,215,0.4)', label: 'Glas' },
-    door:         { top: '#6b4226', left: '#55341d', right: '#603b22', label: 'Deur' },
-    fence:        { top: '#b8945f', left: '#7a5c2e', right: '#8a6c3e', label: 'Hek' },
-    hay:          { top: '#c8a83e', left: '#a08030', right: '#b49035', label: 'Hooi' },
-    water:        { top: 'rgba(40,100,200,0.6)', left: 'rgba(30,80,170,0.5)', right: 'rgba(35,90,185,0.55)', label: 'Water' },
-    lava:         { top: '#e05500', left: '#c04000', right: '#d04a00', label: 'Lava' },
-    grass:        { top: '#5d9e37', left: '#8b6c42', right: '#7a5e38', label: 'Gras' },
-    dirt:         { top: '#8b6c42', left: '#6e5530', right: '#7a5e38', label: 'Aarde' },
-    bookshelf:    { top: '#b8945f', left: '#6b4226', right: '#7a5030', label: 'Boekenkast' },
-    iron_block:   { top: '#d8d8d8', left: '#b0b0b0', right: '#c0c0c0', label: 'IJzerblok' },
-    gold_block:   { top: '#f5d63d', left: '#c4a520', right: '#d9b82c', label: 'Goudblok' },
-    diamond_block:{ top: '#54e5cc', left: '#38b8a0', right: '#45cdb2', label: 'Diamantblok' },
-    crafting:     { top: '#b8945f', left: '#6e5530', right: '#8b6c42', label: 'Werkbank' },
-    furnace:      { top: '#7a7a7a', left: '#5a5a5a', right: '#6a6a6a', label: 'Oven' },
-    torch:        { top: '#ffcc00', left: '#cc8800', right: '#dd9900', label: 'Toorts' },
-    roof_oak:     { top: '#8d5524', left: '#6e3e18', right: '#7a481e', label: 'Eiken Dak' },
-    roof_stone:   { top: '#606060', left: '#484848', right: '#545454', label: 'Stenen Dak' },
-    red_wool:     { top: '#a02020', left: '#802020', right: '#901818', label: 'Rood Wol' },
-    white_wool:   { top: '#e8e8e8', left: '#c8c8c8', right: '#d8d8d8', label: 'Wit Wol' },
-    anvil:        { top: '#444444', left: '#2a2a2a', right: '#363636', label: 'Aambeeld' },
-};
+/* ===== City Layers ===== */
+// 5 layers stacking upward, each with 3 buildings (one per player)
+// Grid rows are top-to-bottom, null = empty/transparent
+const CITY_LAYERS = [
+    {
+        name: 'Basis',
+        icon: '🏕️',
+        floorType: 'grass',
+        buildings: [
+            {
+                id: 'houten_hut',
+                name: 'Houten Hut',
+                icon: '🏠',
+                blocksNeeded: 6,
+                material: 'hout',
+                // 4 columns × 5 rows, rows top-to-bottom
+                grid: [
+                    [null,       'roof_oak',  'roof_oak',  null      ],
+                    ['roof_oak', 'roof_oak',  'roof_oak',  'roof_oak'],
+                    ['oak_log',  'glass',     'glass',     'oak_log' ],
+                    ['oak_log',  'door',      null,        'oak_log' ],
+                    ['oak_planks','oak_planks','oak_planks','oak_planks'],
+                ]
+            },
+            {
+                id: 'werkbank',
+                name: 'Werkbank',
+                icon: '🔨',
+                blocksNeeded: 5,
+                material: 'hout',
+                // 3 columns × 3 rows
+                grid: [
+                    ['oak_planks', 'oak_planks', 'oak_planks'],
+                    ['oak_log',    'crafting',   'oak_log'   ],
+                    ['oak_planks', 'oak_planks', 'oak_planks'],
+                ]
+            },
+            {
+                id: 'boerderij',
+                name: 'Boerderij',
+                icon: '🌾',
+                blocksNeeded: 6,
+                material: 'hout',
+                // 3 columns × 5 rows
+                grid: [
+                    [null,     null,  null  ],
+                    ['oak_log',null,  'oak_log'],
+                    ['oak_log','hay', 'oak_log'],
+                    ['fence',  'hay', 'fence' ],
+                    ['dirt',   'water','dirt' ],
+                ]
+            },
+        ]
+    },
+    {
+        name: 'Dorp',
+        icon: '🏘️',
+        floorType: 'cobblestone',
+        buildings: [
+            {
+                id: 'stenen_huis',
+                name: 'Stenen Huis',
+                icon: '🏗️',
+                blocksNeeded: 8,
+                material: 'steen',
+                // 4 columns × 5 rows
+                grid: [
+                    ['roof_stone','roof_stone','roof_stone','roof_stone'],
+                    ['stone_brick','glass',    'glass',    'stone_brick'],
+                    ['stone_brick','glass',    'glass',    'stone_brick'],
+                    ['stone_brick','door',     null,       'stone_brick'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'smederij',
+                name: 'Smederij',
+                icon: '⚒️',
+                blocksNeeded: 8,
+                material: 'steen',
+                // 4 columns × 4 rows
+                grid: [
+                    ['roof_stone', 'roof_stone', 'roof_stone', 'roof_stone'],
+                    ['stone_brick','furnace',    'anvil',      'stone_brick'],
+                    ['stone_brick','door',       null,         'stone_brick'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'bibliotheek',
+                name: 'Bibliotheek',
+                icon: '📚',
+                blocksNeeded: 8,
+                material: 'steen',
+                // 4 columns × 4 rows
+                grid: [
+                    ['roof_oak',   'roof_oak',   'roof_oak',   'roof_oak'  ],
+                    ['stone_brick','bookshelf',  'bookshelf',  'stone_brick'],
+                    ['stone_brick','glass',      'door',       'stone_brick'],
+                    ['oak_planks', 'oak_planks', 'oak_planks', 'oak_planks'],
+                ]
+            },
+        ]
+    },
+    {
+        name: 'Stad',
+        icon: '🏙️',
+        floorType: 'stone_brick',
+        buildings: [
+            {
+                id: 'markt',
+                name: 'Markt',
+                icon: '🏪',
+                blocksNeeded: 10,
+                material: 'ijzer',
+                // 4 columns × 5 rows
+                grid: [
+                    ['red_wool',   'red_wool',   'red_wool',   'red_wool'  ],
+                    ['oak_log',    null,         null,         'oak_log'   ],
+                    ['oak_log',    'crafting',   'crafting',   'oak_log'   ],
+                    [null,         'crafting',   'crafting',   null        ],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'wachttoren',
+                name: 'Wachttoren',
+                icon: '🗼',
+                blocksNeeded: 10,
+                material: 'ijzer',
+                // 3 columns × 6 rows
+                grid: [
+                    [null,         'torch',      null        ],
+                    ['stone_brick','stone_brick','stone_brick'],
+                    ['stone_brick','glass',      'stone_brick'],
+                    ['stone_brick','glass',      'stone_brick'],
+                    ['stone_brick','door',       'stone_brick'],
+                    ['cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'mijnschacht',
+                name: 'Mijnschacht',
+                icon: '⛏️',
+                blocksNeeded: 10,
+                material: 'ijzer',
+                // 4 columns × 4 rows
+                grid: [
+                    ['oak_planks', 'torch',      'torch',      'oak_planks'],
+                    ['oak_log',    null,         null,         'oak_log'   ],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone'],
+                    ['iron_block', 'iron_block', 'iron_block', 'iron_block'],
+                ]
+            },
+        ]
+    },
+    {
+        name: 'Vesting',
+        icon: '🏰',
+        floorType: 'nether_brick',
+        buildings: [
+            {
+                id: 'kasteel',
+                name: 'Kasteel',
+                icon: '🏰',
+                blocksNeeded: 12,
+                material: 'goud',
+                // 4 columns × 5 rows
+                grid: [
+                    ['stone_brick', null,         'stone_brick', null        ],
+                    ['stone_brick','stone_brick', 'stone_brick', 'stone_brick'],
+                    ['stone_brick','glass',       'glass',       'stone_brick'],
+                    ['stone_brick','door',        null,          'stone_brick'],
+                    ['cobblestone','cobblestone', 'cobblestone', 'cobblestone'],
+                ]
+            },
+            {
+                id: 'nether_portaal',
+                name: 'Nether Portaal',
+                icon: '🟣',
+                blocksNeeded: 12,
+                material: 'goud',
+                // 4 columns × 5 rows
+                grid: [
+                    [null,      'obsidian','obsidian', null     ],
+                    ['obsidian','lava',    'lava',     'obsidian'],
+                    ['obsidian','lava',    'lava',     'obsidian'],
+                    ['obsidian','lava',    'lava',     'obsidian'],
+                    [null,      'obsidian','obsidian', null     ],
+                ]
+            },
+            {
+                id: 'tovenaarstoren',
+                name: 'Tovenaarstoren',
+                icon: '🧙',
+                blocksNeeded: 12,
+                material: 'goud',
+                // 3 columns × 6 rows
+                grid: [
+                    [null,         'diamond_block', null        ],
+                    ['purpur',     'purpur',        'purpur'    ],
+                    ['purpur',     'glass',         'purpur'    ],
+                    ['stone_brick','glass',         'stone_brick'],
+                    ['stone_brick','stone_brick',   'stone_brick'],
+                    ['gold_block', 'gold_block',    'gold_block' ],
+                ]
+            },
+        ]
+    },
+    {
+        name: 'Legende',
+        icon: '🐉',
+        floorType: 'end_stone',
+        buildings: [
+            {
+                id: 'end_toren',
+                name: 'End Toren',
+                icon: '🗽',
+                blocksNeeded: 15,
+                material: 'diamant',
+                // 4 columns × 6 rows
+                grid: [
+                    [null,      'purpur',   'purpur',    null     ],
+                    ['purpur',  'purpur',   'purpur',    'purpur' ],
+                    ['end_stone','glass',   'glass',     'end_stone'],
+                    ['end_stone','glass',   'glass',     'end_stone'],
+                    ['end_stone','door',    null,        'end_stone'],
+                    ['end_stone','end_stone','end_stone','end_stone'],
+                ]
+            },
+            {
+                id: 'drakentroon',
+                name: 'Drakentroon',
+                icon: '🐉',
+                blocksNeeded: 15,
+                material: 'diamant',
+                // 5 columns × 4 rows
+                grid: [
+                    ['purpur',   null,       'purpur',    null,       'purpur'  ],
+                    [null,       'gold_block','gold_block','gold_block', null   ],
+                    ['obsidian', null,       'gold_block', null,      'obsidian'],
+                    ['end_stone','end_stone','end_stone', 'end_stone','end_stone'],
+                ]
+            },
+            {
+                id: 'beacon',
+                name: 'Beacon',
+                icon: '💡',
+                blocksNeeded: 15,
+                material: 'diamant',
+                // 3 columns × 4 rows
+                grid: [
+                    [null,         'diamond_block', null       ],
+                    ['glass',      'gold_block',    'glass'    ],
+                    ['iron_block', 'diamond_block', 'iron_block'],
+                    ['iron_block', 'iron_block',    'iron_block'],
+                ]
+            },
+        ]
+    },
+];
 
-// Building blueprints — 3D voxel arrays [layer][row][col]
-// Each layer is one Y level from bottom to top
-// null = empty, string = block type
-const BUILDING_BLUEPRINTS = {
-    hut: {
-        layers: [
-            // Floor
-            [['oak_planks','oak_planks','oak_planks','oak_planks'],
-             ['oak_planks','oak_planks','oak_planks','oak_planks']],
-            // Walls
-            [['oak_log','oak_planks','oak_planks','oak_log'],
-             ['oak_log','door',null,'oak_log']],
-            // Walls + window
-            [['oak_log','glass','glass','oak_log'],
-             ['oak_log',null,null,'oak_log']],
-            // Roof
-            [['roof_oak','roof_oak','roof_oak','roof_oak'],
-             ['roof_oak','roof_oak','roof_oak','roof_oak']],
-        ]
-    },
-    werkbank: {
-        layers: [
-            [['oak_planks','oak_planks'],
-             ['oak_planks','oak_planks']],
-            [['oak_log',null],
-             [null,'crafting']],
-        ]
-    },
-    hek: {
-        layers: [
-            [['fence','fence','fence','fence','fence','fence']],
-            [['fence',null,null,null,null,'fence']],
-        ]
-    },
-    farm: {
-        layers: [
-            [['dirt','dirt','dirt','dirt'],
-             ['water','dirt','dirt','water']],
-            [[null,'hay','hay',null],
-             [null,null,null,null]],
-        ]
-    },
-    stenen_huis: {
-        layers: [
-            [['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
-             ['cobblestone','oak_planks','oak_planks','oak_planks','cobblestone'],
-             ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone']],
-            [['stone_brick','stone_brick','glass','stone_brick','stone_brick'],
-             ['stone_brick',null,null,null,'stone_brick'],
-             ['stone_brick','door',null,'stone_brick','stone_brick']],
-            [['stone_brick','glass',null,'glass','stone_brick'],
-             ['stone_brick',null,null,null,'stone_brick'],
-             ['stone_brick',null,null,null,'stone_brick']],
-            [['stone_brick','stone_brick','stone_brick','stone_brick','stone_brick'],
-             ['stone_brick',null,null,null,'stone_brick'],
-             ['stone_brick','stone_brick','stone_brick','stone_brick','stone_brick']],
-            [['roof_stone','roof_stone','roof_stone','roof_stone','roof_stone'],
-             ['roof_stone','roof_stone','roof_stone','roof_stone','roof_stone'],
-             ['roof_stone','roof_stone','roof_stone','roof_stone','roof_stone']],
-        ]
-    },
-    bibliotheek: {
-        layers: [
-            [['oak_planks','oak_planks','oak_planks'],
-             ['oak_planks','oak_planks','oak_planks'],
-             ['oak_planks','oak_planks','oak_planks']],
-            [['stone_brick','bookshelf','stone_brick'],
-             ['stone_brick',null,'stone_brick'],
-             ['stone_brick','door','stone_brick']],
-            [['stone_brick','bookshelf','stone_brick'],
-             ['glass',null,'glass'],
-             ['stone_brick',null,'stone_brick']],
-            [['roof_oak','roof_oak','roof_oak'],
-             ['roof_oak','roof_oak','roof_oak'],
-             ['roof_oak','roof_oak','roof_oak']],
-        ]
-    },
-    smederij: {
-        layers: [
-            [['cobblestone','cobblestone','cobblestone'],
-             ['cobblestone','cobblestone','cobblestone'],
-             ['cobblestone','cobblestone','cobblestone']],
-            [['stone_brick','iron_block','stone_brick'],
-             ['stone_brick',null,'stone_brick'],
-             ['stone_brick','door','stone_brick']],
-            [['stone_brick','furnace','stone_brick'],
-             ['stone_brick',null,'stone_brick'],
-             ['stone_brick',null,'stone_brick']],
-            [['roof_stone','roof_stone','roof_stone'],
-             ['roof_stone','anvil','roof_stone'],
-             ['roof_stone','roof_stone','roof_stone']],
-        ]
-    },
-    wachttoren: {
-        layers: [
-            [['cobblestone','cobblestone'],
-             ['cobblestone','cobblestone']],
-            [['stone_brick','stone_brick'],
-             ['stone_brick','door']],
-            [['stone_brick','stone_brick'],
-             ['stone_brick','stone_brick']],
-            [['stone_brick','glass'],
-             ['glass','stone_brick']],
-            [['stone_brick','stone_brick'],
-             ['stone_brick','stone_brick']],
-            [['stone_brick','torch'],
-             ['torch','stone_brick']],
-            [['roof_stone','roof_stone'],
-             ['roof_stone','roof_stone']],
-        ]
-    },
-    piramide: {
-        layers: [
-            [['sandstone','sandstone','sandstone','sandstone','sandstone','sandstone'],
-             ['sandstone','sandstone','sandstone','sandstone','sandstone','sandstone'],
-             ['sandstone','sandstone','sandstone','sandstone','sandstone','sandstone'],
-             ['sandstone','sandstone','sandstone','sandstone','sandstone','sandstone']],
-            [[null,'sandstone','sandstone','sandstone','sandstone',null],
-             [null,'sandstone','gold_block','gold_block','sandstone',null],
-             [null,'sandstone','sandstone','sandstone','sandstone',null]],
-            [[null,null,'sandstone','sandstone',null,null],
-             [null,null,'sandstone','sandstone',null,null]],
-            [[null,null,null,'gold_block',null,null]],
-        ]
-    },
-    oase: {
-        layers: [
-            [['grass','grass','water','water'],
-             ['grass','water','water','grass']],
-            [[null,null,null,null],
-             [null,null,null,null]],
-        ]
-    },
-    markt: {
-        layers: [
-            [['sandstone','sandstone','sandstone','sandstone'],
-             ['sandstone','oak_planks','oak_planks','sandstone'],
-             ['sandstone','sandstone','sandstone','sandstone']],
-            [['oak_log',null,null,'oak_log'],
-             [null,null,null,null],
-             ['oak_log',null,null,'oak_log']],
-            [['red_wool','red_wool','red_wool','red_wool'],
-             ['red_wool','red_wool','red_wool','red_wool'],
-             ['red_wool','red_wool','red_wool','red_wool']],
-        ]
-    },
-    nether_poort: {
-        layers: [
-            [[null,'obsidian','obsidian',null],
-             [null,null,null,null]],
-            [['obsidian','lava','lava','obsidian'],
-             [null,null,null,null]],
-            [['obsidian','lava','lava','obsidian'],
-             [null,null,null,null]],
-            [['obsidian','lava','lava','obsidian'],
-             [null,null,null,null]],
-            [[null,'obsidian','obsidian',null],
-             [null,null,null,null]],
-        ]
-    },
-    vesting: {
-        layers: [
-            [['nether_brick','nether_brick','nether_brick','nether_brick','nether_brick','nether_brick'],
-             ['nether_brick','nether_brick','nether_brick','nether_brick','nether_brick','nether_brick'],
-             ['nether_brick','nether_brick','nether_brick','nether_brick','nether_brick','nether_brick']],
-            [['nether_brick','nether_brick',null,null,'nether_brick','nether_brick'],
-             ['nether_brick',null,null,null,null,'nether_brick'],
-             ['nether_brick','nether_brick','door',null,'nether_brick','nether_brick']],
-            [['nether_brick',null,null,null,null,'nether_brick'],
-             [null,null,null,null,null,null],
-             ['nether_brick',null,null,null,null,'nether_brick']],
-            [['nether_brick','lava',null,null,'lava','nether_brick'],
-             [null,null,null,null,null,null],
-             ['nether_brick',null,null,null,null,'nether_brick']],
-            [['nether_brick','nether_brick','nether_brick','nether_brick','nether_brick','nether_brick'],
-             ['nether_brick','nether_brick','nether_brick','nether_brick','nether_brick','nether_brick'],
-             ['nether_brick','nether_brick','nether_brick','nether_brick','nether_brick','nether_brick']],
-        ]
-    },
-    end_toren: {
-        layers: [
-            [['end_stone','end_stone','end_stone','end_stone'],
-             ['end_stone','end_stone','end_stone','end_stone']],
-            [['end_stone','purpur','purpur','end_stone'],
-             ['end_stone','purpur','purpur','end_stone']],
-            [['purpur','end_stone','end_stone','purpur'],
-             ['purpur','end_stone','end_stone','purpur']],
-            [['end_stone','glass','glass','end_stone'],
-             ['end_stone','glass','glass','end_stone']],
-            [['purpur','purpur','purpur','purpur'],
-             ['purpur','purpur','purpur','purpur']],
-            [['end_stone','end_stone','end_stone','end_stone'],
-             ['end_stone','end_stone','end_stone','end_stone']],
-            [[null,'purpur','purpur',null],
-             [null,'purpur','purpur',null]],
-            [[null,'diamond_block','diamond_block',null]],
-        ]
-    },
-    drakentroon: {
-        layers: [
-            [['end_stone','end_stone','end_stone','end_stone','end_stone'],
-             ['end_stone','obsidian','obsidian','obsidian','end_stone'],
-             ['end_stone','end_stone','end_stone','end_stone','end_stone']],
-            [['purpur',null,null,null,'purpur'],
-             [null,null,'gold_block',null,null],
-             ['purpur',null,null,null,'purpur']],
-            [['purpur',null,null,null,'purpur'],
-             [null,null,null,null,null],
-             ['purpur',null,null,null,'purpur']],
-            [['diamond_block',null,null,null,'diamond_block'],
-             [null,null,null,null,null],
-             ['diamond_block',null,null,null,'diamond_block']],
-        ]
-    },
-};
+/* ===== BUILDING_PROJECTS — backward compatibility flat array ===== */
+const BUILDING_PROJECTS = (function() {
+    const projects = [];
+    CITY_LAYERS.forEach((layer, layerIdx) => {
+        const xp = 50 + layerIdx * 50;
+        layer.buildings.forEach(b => {
+            projects.push({
+                id: b.id,
+                name: b.name,
+                icon: b.icon,
+                biome: layerIdx,         // layer index maps to biome
+                blocksNeeded: b.blocksNeeded,
+                material: b.material,
+                layer: layerIdx,
+                desc: `Bouw de ${b.name} voor je stad!`,
+                color: BLOCK_COLORS[b.material] || '#888',
+                reward: { xp, item: null },
+            });
+        });
+    });
+    return projects;
+})();
 
-// Building positions in the isometric world grid (col, row on the ground plane)
-const BUILDING_POSITIONS = {
-    // Plains buildings - front of village
-    hut:          { col: 3, row: 5 },
-    werkbank:     { col: 8, row: 6 },
-    hek:          { col: 1, row: 8 },
-    farm:         { col: 12, row: 7 },
-    // Forest - middle area
-    stenen_huis:  { col: 7, row: 3 },
-    bibliotheek:  { col: 12, row: 3 },
-    smederij:     { col: 2, row: 2 },
-    wachttoren:   { col: 16, row: 4 },
-    // Desert - left side
-    piramide:     { col: 0, row: 0 },
-    oase:         { col: 6, row: 0 },
-    markt:        { col: 10, row: 0 },
-    // Nether - right side
-    nether_poort: { col: 15, row: 1 },
-    vesting:      { col: 14, row: 7 },
-    // End - center back
-    end_toren:    { col: 9, row: 1 },
-    drakentroon:  { col: 5, row: 9 },
-};
+/* ===== BUILDING_POSITIONS — kept for backward compat, empty ===== */
+const BUILDING_POSITIONS = {};
 
-// Count total blocks in a blueprint
-function countBlueprintBlocks(buildingId) {
-    const bp = BUILDING_BLUEPRINTS[buildingId];
-    if (!bp) return 0;
-    let count = 0;
-    for (const layer of bp.layers) {
-        for (const row of layer) {
-            for (const cell of row) {
-                if (cell) count++;
+/* ===== Player Color ===== */
+function getPlayerColor(playerId) {
+    const colors = { sebas: '#4caf50', jonathan: '#2196f3', benjamin: '#ff9800' };
+    return colors[playerId] || '#888';
+}
+
+/* ===== Layer Status ===== */
+function getLayerStatus(layerIndex, playerDataMap) {
+    const layer = CITY_LAYERS[layerIndex];
+    if (!layer) return { unlocked: false, complete: false, claims: {} };
+
+    // Layer 0 is always unlocked; others unlock when all 3 players finished prev layer
+    let unlocked = layerIndex === 0;
+    if (layerIndex > 0) {
+        const prevLayer = CITY_LAYERS[layerIndex - 1];
+        unlocked = Object.values(playerDataMap).every(playerData => {
+            if (!playerData || !playerData.world || !playerData.world.buildings) return false;
+            return prevLayer.buildings.some(b => {
+                const building = playerData.world.buildings.find(bld => bld.projectId === b.id);
+                return building && building.completed;
+            });
+        });
+    }
+
+    // Build claims map: buildingId -> { playerId, playerName, blocksPlaced, completed }
+    const claims = {};
+    for (const [playerId, playerData] of Object.entries(playerDataMap)) {
+        if (!playerData || !playerData.world || !playerData.world.buildings) continue;
+        for (const b of layer.buildings) {
+            const building = playerData.world.buildings.find(bld => bld.projectId === b.id);
+            if (building) {
+                claims[b.id] = {
+                    playerId,
+                    playerName: playerData.name || playerId,
+                    blocksPlaced: building.blocksPlaced || 0,
+                    completed: building.completed || false,
+                };
             }
         }
     }
-    return count;
+
+    const complete = layer.buildings.every(b => claims[b.id] && claims[b.id].completed);
+
+    return { unlocked, complete, claims };
 }
 
-// Get ordered list of blocks for a blueprint (bottom-to-top, back-to-front)
-function getBlueprintBlockList(buildingId) {
-    const bp = BUILDING_BLUEPRINTS[buildingId];
-    if (!bp) return [];
-    const blocks = [];
-    for (let y = 0; y < bp.layers.length; y++) {
-        const layer = bp.layers[y];
-        for (let r = 0; r < layer.length; r++) {
-            const row = layer[r];
-            for (let c = 0; c < row.length; c++) {
-                if (row[c]) {
-                    blocks.push({ x: c, y, z: r, type: row[c] });
+/* ===== Render Building Sprite ===== */
+function renderBuildingSprite(building, blocksPlaced, blocksNeeded) {
+    const grid = building.grid;
+    if (!grid || grid.length === 0) return '<div></div>';
+
+    const rows = grid.length;
+    const cols = grid[0].length;
+    const blockSize = 36;
+
+    // Count total non-null blocks in the grid
+    let totalGridBlocks = 0;
+    for (const row of grid) {
+        for (const cell of row) {
+            if (cell) totalGridBlocks++;
+        }
+    }
+
+    // Determine progress fraction
+    const fraction = blocksNeeded > 0 ? Math.min(1, blocksPlaced / blocksNeeded) : 0;
+    const solidGridBlocks = Math.round(fraction * totalGridBlocks);
+
+    // Count blocks bottom-to-top to determine which are solid
+    // Build list of non-null cells bottom-to-top, left-to-right
+    const blockCells = [];
+    for (let r = rows - 1; r >= 0; r--) {
+        for (let c = 0; c < cols; c++) {
+            if (grid[r][c]) {
+                blockCells.push({ r, c });
+            }
+        }
+    }
+
+    // Mark which cells are solid
+    const solidSet = new Set();
+    for (let i = 0; i < solidGridBlocks && i < blockCells.length; i++) {
+        solidSet.add(`${blockCells[i].r},${blockCells[i].c}`);
+    }
+
+    let html = `<div class="building-sprite" style="
+        grid-template-columns: repeat(${cols}, ${blockSize}px);
+        grid-template-rows: repeat(${rows}, ${blockSize}px);
+        width: ${cols * blockSize + (cols - 1)}px;
+        height: ${rows * blockSize + (rows - 1)}px;
+    ">`;
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const blockType = grid[r][c];
+            if (!blockType) {
+                html += `<div class="city-block empty" style="width:${blockSize}px;height:${blockSize}px;"></div>`;
+            } else {
+                const color = BLOCK_COLORS[blockType] || '#888';
+                const isSolid = solidSet.has(`${r},${c}`);
+                const stateClass = isSolid ? 'solid' : 'ghost';
+                html += `<div class="city-block ${stateClass}" style="
+                    width:${blockSize}px;
+                    height:${blockSize}px;
+                    background:${color};
+                "></div>`;
+            }
+        }
+    }
+
+    html += '</div>';
+    return html;
+}
+
+/* ===== Handle Building Click ===== */
+function handleBuildingClick(buildingId, layerIndex) {
+    if (!currentPlayer) return;
+
+    // Check if it's the player's building in progress
+    const building = currentPlayer.world.buildings.find(b => b.projectId === buildingId);
+    if (building && !building.completed) {
+        if (currentPlayer.world.activeProject === buildingId) {
+            startBuildSession();
+        } else {
+            currentPlayer.world.activeProject = buildingId;
+            savePlayer(currentPlayer).then(() => {
+                updateWorldScreen();
+                showToast('⛏️ Gebouw geselecteerd!');
+            });
+        }
+        return;
+    }
+
+    if (building && building.completed) {
+        showToast('✅ Dit gebouw is al af!');
+        return;
+    }
+
+    // Unclaimed — check if layer is unlocked, then claim it
+    getLayerStatusForCurrentPlayer(layerIndex).then(status => {
+        if (!status.unlocked) {
+            showToast('🔒 Voltooi eerst de vorige laag!');
+            return;
+        }
+        // Check not claimed by another player
+        if (status.claims[buildingId] && status.claims[buildingId].playerId !== currentPlayer.id) {
+            showToast(`⛏️ ${status.claims[buildingId].playerName} bouwt dit al!`);
+            return;
+        }
+        selectBuildProject(buildingId);
+    });
+}
+
+async function getLayerStatusForCurrentPlayer(layerIndex) {
+    const playerDataMap = {};
+    for (const id of Object.keys(PLAYERS)) {
+        playerDataMap[id] = await getPlayer(id);
+    }
+    return getLayerStatus(layerIndex, playerDataMap);
+}
+
+/* ===== Render City ===== */
+async function renderCity(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Load all player data
+    const playerDataMap = {};
+    for (const id of Object.keys(PLAYERS)) {
+        playerDataMap[id] = await getPlayer(id);
+    }
+
+    // Compute layer statuses
+    const layerStatuses = CITY_LAYERS.map((_, i) => getLayerStatus(i, playerDataMap));
+
+    // City stats
+    let totalCompleted = 0;
+    let totalBuildings = 0;
+    for (const layer of CITY_LAYERS) {
+        totalBuildings += layer.buildings.length;
+        for (const b of layer.buildings) {
+            for (const pd of Object.values(playerDataMap)) {
+                if (pd && pd.world && pd.world.buildings) {
+                    const bld = pd.world.buildings.find(x => x.projectId === b.id);
+                    if (bld && bld.completed) totalCompleted++;
                 }
             }
         }
     }
-    return blocks;
-}
 
-// Convert isometric grid coords to screen pixel position
-function isoToScreen(col, row, layer) {
-    const x = (col - row) * (ISO.BLOCK_W / 2);
-    const y = (col + row) * (ISO.BLOCK_H / 2) - (layer * ISO.BLOCK_D);
-    return { x, y };
-}
-
-// Render a single isometric block as HTML
-function renderIsoBlock(blockType, col, row, layer, extraClass = '', opacity = 1) {
-    const bt = BLOCK_TYPES[blockType];
-    if (!bt) return '';
-    const pos = isoToScreen(col, row, layer);
-    const w = ISO.BLOCK_W;
-    const h = ISO.BLOCK_H;
-    const d = ISO.BLOCK_D;
-
-    return `<div class="iso-block ${extraClass}" style="
-        left:${pos.x}px; top:${pos.y}px; opacity:${opacity};
-        --bt:${bt.top}; --bl:${bt.left}; --br:${bt.right};
-        width:${w}px; height:${d + h}px;
-    " data-type="${blockType}">
-        <div class="iso-top" style="background:${bt.top}"></div>
-        <div class="iso-left" style="background:${bt.left}"></div>
-        <div class="iso-right" style="background:${bt.right}"></div>
-    </div>`;
-}
-
-// Render a complete building
-function renderBuilding(buildingId, blocksPlaced, totalBlocks) {
-    const bp = BUILDING_BLUEPRINTS[buildingId];
-    if (!bp) return '';
-
-    const blockList = getBlueprintBlockList(buildingId);
     let html = '';
 
-    // Determine how many blocks to show based on progress
-    const blocksToShow = Math.min(blockList.length,
-        Math.round((blocksPlaced / totalBlocks) * blockList.length));
-
-    // Render ghost blocks (unfilled) first
-    for (let i = blocksToShow; i < blockList.length; i++) {
-        const b = blockList[i];
-        html += renderIsoBlock(b.type, b.x, b.z, b.y, 'ghost', 0.12);
-    }
-
-    // Render filled blocks
-    for (let i = 0; i < blocksToShow; i++) {
-        const b = blockList[i];
-        html += renderIsoBlock(b.type, b.x, b.z, b.y, 'filled', 1);
-    }
-
-    return html;
-}
-
-// Decorative elements placed on the ground plane
-const DECORATIONS = [
-    // Trees scattered around the village
-    { col: 0, row: 3, type: 'tree' },
-    { col: 1, row: 1, type: 'tree' },
-    { col: 5, row: 0, type: 'tree_small' },
-    { col: 17, row: 2, type: 'tree' },
-    { col: 18, row: 5, type: 'tree_small' },
-    { col: 19, row: 8, type: 'tree' },
-    { col: 0, row: 9, type: 'tree' },
-    { col: 18, row: 10, type: 'tree_small' },
-    { col: 3, row: 10, type: 'tree' },
-    { col: 14, row: 0, type: 'tree_small' },
-    // Flowers and grass patches
-    { col: 2, row: 4, type: 'flowers' },
-    { col: 7, row: 8, type: 'flowers' },
-    { col: 15, row: 6, type: 'flowers' },
-    { col: 11, row: 10, type: 'flowers' },
-    { col: 4, row: 1, type: 'flowers' },
-    // Rocks
-    { col: 13, row: 9, type: 'rock' },
-    { col: 19, row: 1, type: 'rock' },
-    { col: 6, row: 10, type: 'rock' },
-    // Torches along paths
-    { col: 9, row: 2, type: 'torch' },
-    { col: 9, row: 4, type: 'torch' },
-    { col: 9, row: 8, type: 'torch' },
-    { col: 4, row: 6, type: 'torch' },
-    { col: 14, row: 6, type: 'torch' },
-];
-
-function renderDecoration(dec) {
-    const pos = isoToScreen(dec.col, dec.row, 0);
-    const w = ISO.BLOCK_W;
-    const h = ISO.BLOCK_H;
-
-    switch (dec.type) {
-        case 'tree':
-            // A 3-block-tall tree: trunk + 2 layers of leaves
-            return `<div class="iso-decoration tree" style="left:${pos.x}px; top:${pos.y - 60}px;">
-                ${renderIsoBlock('oak_log', 0, 0, 0, 'deco', 1)}
-                ${renderIsoBlock('oak_log', 0, 0, 1, 'deco', 1)}
-                <div class="tree-crown" style="left:${-w*0.3}px; top:${-30}px; width:${w*1.6}px; height:${w*1.4}px; background:radial-gradient(ellipse,#3d8b37 0%,#2d6b25 50%,#1e5518 100%); border-radius:50%; position:absolute; opacity:0.9;"></div>
-            </div>`;
-        case 'tree_small':
-            return `<div class="iso-decoration tree-small" style="left:${pos.x}px; top:${pos.y - 40}px;">
-                ${renderIsoBlock('oak_log', 0, 0, 0, 'deco', 1)}
-                <div class="tree-crown" style="left:${-w*0.2}px; top:${-18}px; width:${w*1.4}px; height:${w*1.1}px; background:radial-gradient(ellipse,#4a9e3e 0%,#3a7e30 60%,#2a6020 100%); border-radius:50%; position:absolute; opacity:0.85;"></div>
-            </div>`;
-        case 'flowers':
-            return `<div class="iso-decoration flowers" style="left:${pos.x}px; top:${pos.y}px; font-size:8px; position:absolute; pointer-events:none; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3));">
-                <span style="position:absolute; left:1px; top:-2px;">🌸</span>
-                <span style="position:absolute; left:10px; top:-5px;">🌼</span>
-                <span style="position:absolute; left:5px; top:3px;">🌺</span>
-            </div>`;
-        case 'rock':
-            return `<div class="iso-decoration" style="left:${pos.x}px; top:${pos.y}px;">
-                ${renderIsoBlock('cobblestone', 0, 0, 0, 'deco', 0.7)}
-            </div>`;
-        case 'torch':
-            return `<div class="iso-decoration torch-deco" style="left:${pos.x + 8}px; top:${pos.y - 16}px; position:absolute; pointer-events:none;">
-                <span style="font-size:14px; filter:drop-shadow(0 0 6px rgba(255,200,0,0.8)); animation: torch-flicker 1.5s ease-in-out infinite alternate;">🕯️</span>
-            </div>`;
-        default:
-            return '';
-    }
-}
-
-// Render the full shared city
-async function renderCity3D(containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    // Load all players' buildings
-    const allBuildings = {};
-    for (const [id, info] of Object.entries(PLAYERS)) {
-        const player = await getPlayer(id);
-        if (player && player.world && player.world.buildings) {
-            for (const b of player.world.buildings) {
-                allBuildings[b.projectId] = { ...b, playerId: id, playerName: info.name };
-            }
-        }
-    }
-
-    // Calculate city stats
-    const completedCount = Object.values(allBuildings).filter(b => b.completed).length;
-    const totalProjects = BUILDING_PROJECTS.length;
-    const startedCount = Object.values(allBuildings).length;
-
-    // Build the scene
-    let html = '';
-
-    // Ground plane — contains all isometric content
-    html += '<div class="city-ground">';
-
-    // Ground tiles
-    html += '<div class="iso-ground">';
-    for (let r = 0; r < ISO.GROUND_ROWS; r++) {
-        for (let c = 0; c < ISO.GROUND_COLS; c++) {
-            const pos = isoToScreen(c, r, 0);
-            // Paths: crossroads through the village
-            const isPathH = (r === 6 && c >= 1 && c <= 18);
-            const isPathV = (c === 9 && r >= 1 && r <= 10);
-            const isPath = isPathH || isPathV;
-            // Water: small pond
-            const isWater = (r === 11 && c >= 16 && c <= 18) || (r === 10 && c >= 17 && c <= 18);
-            const groundType = isWater ? 'water' : isPath ? 'dirt' : 'grass';
-            const bt = BLOCK_TYPES[groundType];
-
-            // Vary grass color slightly for natural look
-            let tileOpacity = isPath ? 0.8 : (0.55 + Math.sin(c * 3.7 + r * 2.3) * 0.15);
-            if (isWater) tileOpacity = 0.7;
-
-            html += `<div class="iso-ground-tile ${isWater ? 'water-tile' : ''}" style="
-                left:${pos.x}px; top:${pos.y}px; opacity:${tileOpacity};
-            ">
-                <div class="iso-top" style="background:${bt.top}"></div>
-            </div>`;
-        }
-    }
-    html += '</div>'; // iso-ground
-
-    // Decorations layer (behind buildings)
-    html += '<div class="iso-decorations">';
-    for (const dec of DECORATIONS) {
-        html += renderDecoration(dec);
-    }
-    html += '</div>';
-
-    // Buildings layer (sorted for proper depth)
-    html += '<div class="iso-buildings">';
-
-    const sortedProjects = [...BUILDING_PROJECTS].sort((a, b) => {
-        const pa = BUILDING_POSITIONS[a.id] || { col: 0, row: 0 };
-        const pb = BUILDING_POSITIONS[b.id] || { col: 0, row: 0 };
-        return (pa.col + pa.row) - (pb.col + pb.row);
-    });
-
-    for (const project of sortedProjects) {
-        const pos = BUILDING_POSITIONS[project.id];
-        if (!pos) continue;
-
-        const building = allBuildings[project.id];
-        const blocksPlaced = building ? building.blocksPlaced : 0;
-        const isComplete = building && building.completed;
-        const isStarted = building && blocksPlaced > 0;
-        const screenPos = isoToScreen(pos.col, pos.row, 0);
-        const showGhost = !isStarted;
-
-        const builderBadge = building ?
-            `<span class="city-builder-badge" style="background:${getPlayerColor(building.playerId)}">${building.playerName.charAt(0)}</span>` : '';
-
-        const pct = building ? Math.round((blocksPlaced / project.blocksNeeded) * 100) : 0;
-        const progressBar = !isComplete && isStarted ?
-            `<div class="city-building-progress"><div class="city-building-progress-fill" style="width:${pct}%"></div><span>${pct}%</span></div>` : '';
-
-        const labelClass = isComplete ? 'complete' : isStarted ? 'started' : '';
-        const label = `<div class="city-building-label ${labelClass}">
-            ${project.icon} ${project.name}${builderBadge}
-        </div>`;
-
-        html += `<div class="iso-building-wrapper ${isComplete ? 'complete' : ''} ${showGhost ? 'ghost-building' : ''}"
-                      style="left:${screenPos.x}px; top:${screenPos.y}px;"
-                      data-building="${project.id}"
-                      onclick="handleCityBuildingClick('${project.id}')">
-            ${renderBuilding(project.id, blocksPlaced, project.blocksNeeded)}
-            ${label}
-            ${progressBar}
-        </div>`;
-    }
-
-    html += '</div>'; // iso-buildings
-    html += '</div>'; // city-ground
-
-    // City header: name + progress
+    // City header
+    const completedPct = totalBuildings > 0 ? Math.round((totalCompleted / totalBuildings) * 100) : 0;
     html += `<div class="city-header-bar">
         <div class="city-title">🏘️ Ons Dorp</div>
         <div class="city-total-progress">
-            <div class="city-total-fill" style="width:${Math.round(completedCount/totalProjects*100)}%"></div>
-            <span>${completedCount}/${totalProjects}</span>
+            <div class="city-total-fill" style="width:${completedPct}%"></div>
+            <span>${totalCompleted}/${totalBuildings}</span>
         </div>
     </div>`;
 
-    // Player contributions bar — above action bar
+    // Layers (stacking bottom to top = rendered top to bottom with column-reverse)
+    html += '<div class="city-layers">';
+
+    for (let layerIdx = 0; layerIdx < CITY_LAYERS.length; layerIdx++) {
+        const layer = CITY_LAYERS[layerIdx];
+        const status = layerStatuses[layerIdx];
+
+        if (!status.unlocked) {
+            // Show locked bar
+            const prevLayer = layerIdx > 0 ? CITY_LAYERS[layerIdx - 1] : null;
+            html += `<div class="city-layer locked">
+                <div class="layer-lock">🔒 ${layer.icon} ${layer.name}</div>
+                ${prevLayer ? `<div class="layer-lock-hint">Voltooi ${prevLayer.name} met alle 3 spelers</div>` : ''}
+            </div>`;
+        } else {
+            // Render active/complete layer
+            html += `<div class="city-layer ${status.complete ? 'complete' : ''}">`;
+            if (status.complete) {
+                html += `<div class="layer-complete-banner">✅ ${layer.icon} ${layer.name} Voltooid!</div>`;
+            }
+
+            // Layer floor
+            const floorColor = BLOCK_COLORS[layer.floorType] || '#888';
+            html += `<div class="layer-floor" style="--floor-color:${floorColor}">`;
+            for (let i = 0; i < 30; i++) {
+                html += `<div class="floor-block" style="background:${floorColor}"></div>`;
+            }
+            html += '</div>';
+
+            // Buildings row
+            html += '<div class="layer-buildings">';
+            for (const building of layer.buildings) {
+                const claim = status.claims[building.id];
+                const blocksPlaced = claim ? claim.blocksPlaced : 0;
+                const isCompleted = claim && claim.completed;
+
+                // Player badge
+                let playerBadge = '';
+                if (claim) {
+                    const color = getPlayerColor(claim.playerId);
+                    const initial = (claim.playerName || claim.playerId).charAt(0).toUpperCase();
+                    playerBadge = `<div class="building-player" style="background:${color}">${initial}</div>`;
+                }
+
+                // Progress bar
+                const pct = building.blocksNeeded > 0 ? Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100)) : 0;
+                const progressBar = !isCompleted && claim
+                    ? `<div class="building-progress"><div class="building-progress-fill" style="width:${pct}%"></div></div>`
+                    : '';
+
+                html += `<div class="city-building-slot" onclick="handleBuildingClick('${building.id}', ${layerIdx})">
+                    ${renderBuildingSprite(building, blocksPlaced, building.blocksNeeded)}
+                    <div class="building-name">${building.icon} ${building.name}</div>
+                    ${playerBadge}
+                    ${progressBar}
+                </div>`;
+            }
+            html += '</div>'; // layer-buildings
+            html += '</div>'; // city-layer
+        }
+    }
+
+    html += '</div>'; // city-layers
+
+    // Ground — grass blocks
+    html += `<div class="city-ground-2d">
+        <div class="ground-row">`;
+    for (let i = 0; i < 40; i++) {
+        html += `<div class="ground-block" style="background:#5d9e37"></div>`;
+    }
+    html += '</div><div class="ground-row">';
+    for (let i = 0; i < 40; i++) {
+        html += `<div class="ground-block" style="background:#8b6c42"></div>`;
+    }
+    html += '</div></div>'; // ground rows + city-ground-2d
+
+    // Player chips
     html += '<div class="city-players">';
     for (const [id, info] of Object.entries(PLAYERS)) {
-        const player = await getPlayer(id);
-        const buildingCount = player?.world?.buildings?.filter(b => b.completed).length || 0;
-        const inProgress = player?.world?.buildings?.find(b => !b.completed);
+        const pd = playerDataMap[id];
+        const buildingCount = pd?.world?.buildings?.filter(b => b.completed).length || 0;
+        const inProgress = pd?.world?.buildings?.find(b => !b.completed);
         const activeProject = inProgress ? BUILDING_PROJECTS.find(p => p.id === inProgress.projectId) : null;
         html += `<div class="city-player-chip" style="border-color:${getPlayerColor(id)}">
             <span class="city-player-avatar" style="background:${getPlayerColor(id)}">${info.name.charAt(0)}</span>
@@ -567,89 +611,82 @@ async function renderCity3D(containerId) {
             ${activeProject ? `<span class="city-player-building">⛏ ${activeProject.name}</span>` : ''}
         </div>`;
     }
-    html += '</div>';
+    html += '</div>'; // city-players
 
     container.innerHTML = html;
 }
 
-function getPlayerColor(playerId) {
-    const colors = { sebas: '#4caf50', jonathan: '#2196f3', benjamin: '#ff9800' };
-    return colors[playerId] || '#888';
+/* ===== renderCity3D — alias for backward compat ===== */
+async function renderCity3D(containerId) {
+    return renderCity(containerId);
 }
 
-function handleCityBuildingClick(buildingId) {
-    if (!currentPlayer) return;
+/* ===== Backward Compat Stubs ===== */
 
-    // Check if this is the player's active or available building
-    const building = currentPlayer.world.buildings.find(b => b.projectId === buildingId);
-    const project = BUILDING_PROJECTS.find(p => p.id === buildingId);
-    if (!project) return;
+function countBlueprintBlocks(buildingId) {
+    for (const layer of CITY_LAYERS) {
+        const building = layer.buildings.find(b => b.id === buildingId);
+        if (building) return building.blocksNeeded;
+    }
+    return 0;
+}
 
-    if (building && !building.completed && building.projectId === currentPlayer.world.activeProject) {
-        // Start building
-        startBuildSession();
-    } else if (!building) {
-        // Check if available
-        const isUnlocked = currentPlayer.world.unlockedBiomes.includes(project.biome);
-        if (isUnlocked) {
-            selectBuildProject(buildingId);
+function getBlueprintBlockList(buildingId) {
+    for (const layer of CITY_LAYERS) {
+        const building = layer.buildings.find(b => b.id === buildingId);
+        if (building && building.grid) {
+            const blocks = [];
+            const rows = building.grid.length;
+            for (let r = rows - 1; r >= 0; r--) {
+                const row = building.grid[r];
+                for (let c = 0; c < row.length; c++) {
+                    if (row[c]) blocks.push({ x: c, y: rows - 1 - r, z: 0, type: row[c] });
+                }
+            }
+            return blocks;
         }
     }
+    return [];
 }
 
-// Render building preview during typing (smaller version)
-function renderTypingBuildPreview(buildingId, blocksPlaced, totalBlocks) {
-    const bp = BUILDING_BLUEPRINTS[buildingId];
-    if (!bp) return '';
-
-    const blockList = getBlueprintBlockList(buildingId);
-    const blocksToShow = Math.min(blockList.length,
-        Math.round((blocksPlaced / totalBlocks) * blockList.length));
-
-    // Use smaller scale for typing preview
-    const scale = 0.7;
-    let html = '';
-
-    for (let i = blocksToShow; i < blockList.length; i++) {
-        const b = blockList[i];
-        html += renderIsoBlock(b.type, b.x, b.z, b.y, 'ghost', 0.15);
+function renderBuilding(buildingId, blocksPlaced, totalBlocks) {
+    for (const layer of CITY_LAYERS) {
+        const building = layer.buildings.find(b => b.id === buildingId);
+        if (building) {
+            return renderBuildingSprite(building, blocksPlaced, totalBlocks || building.blocksNeeded);
+        }
     }
-    for (let i = 0; i < blocksToShow; i++) {
-        const b = blockList[i];
-        html += renderIsoBlock(b.type, b.x, b.z, b.y, 'filled', 1);
-    }
-
-    return `<div class="typing-build-preview" style="transform:scale(${scale})">${html}</div>`;
+    return '';
 }
 
-// Add a single block animation during typing
 function animateNewBlock(buildingId, blocksPlaced, totalBlocks) {
     const structure = document.getElementById('build-structure');
     if (!structure) return;
 
-    const blockList = getBlueprintBlockList(buildingId);
-    const blockIdx = Math.min(blockList.length - 1,
-        Math.round((blocksPlaced / totalBlocks) * blockList.length) - 1);
+    // Find building
+    let building = null;
+    for (const layer of CITY_LAYERS) {
+        building = layer.buildings.find(b => b.id === buildingId);
+        if (building) break;
+    }
+    if (!building) return;
 
-    if (blockIdx < 0 || blockIdx >= blockList.length) return;
+    // Re-render the sprite with updated progress
+    structure.innerHTML = renderBuildingSprite(building, blocksPlaced, totalBlocks || building.blocksNeeded);
+}
 
-    const b = blockList[blockIdx];
-    const bt = BLOCK_TYPES[b.type];
-    if (!bt) return;
+function renderTypingBuildPreview(buildingId, blocksPlaced, totalBlocks) {
+    return renderBuilding(buildingId, blocksPlaced, totalBlocks);
+}
 
-    // Find and fill the corresponding ghost block
-    const ghosts = structure.querySelectorAll('.iso-block.ghost');
-    if (ghosts.length > 0) {
-        const ghost = ghosts[0];
-        ghost.classList.remove('ghost');
-        ghost.classList.add('filled', 'block-appear');
-        ghost.style.opacity = '1';
-        // Update face colors
-        const top = ghost.querySelector('.iso-top');
-        const left = ghost.querySelector('.iso-left');
-        const right = ghost.querySelector('.iso-right');
-        if (top) top.style.background = bt.top;
-        if (left) left.style.background = bt.left;
-        if (right) right.style.background = bt.right;
+/* ===== handleCityBuildingClick — old name alias ===== */
+function handleCityBuildingClick(buildingId) {
+    if (!currentPlayer) return;
+    // Find which layer this building is in
+    for (let i = 0; i < CITY_LAYERS.length; i++) {
+        if (CITY_LAYERS[i].buildings.find(b => b.id === buildingId)) {
+            handleBuildingClick(buildingId, i);
+            return;
+        }
     }
 }

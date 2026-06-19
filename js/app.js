@@ -122,8 +122,8 @@ function updateWorldScreen() {
         btn.innerHTML = `<span class="btn-icon">⛏</span> Kies een gebouw!`;
     }
 
-    // Render 3D isometric city
-    renderCity3D('city-container');
+    // Render 2D city
+    renderCity('city-container');
 }
 
 /* ===== Daily Reward ===== */
@@ -249,45 +249,57 @@ async function openBuildMenu() {
     popup.style.display = 'flex';
     soundButtonClick();
 
-    // Gather all buildings from all players to show shared city state
+    // Gather all player data for claims and layer status checks
+    const allPlayerData = {};
     const claimedBy = {};
     for (const [id, info] of Object.entries(PLAYERS)) {
         const p = await getPlayer(id);
+        allPlayerData[id] = p;
         if (p && p.world && p.world.buildings) {
             for (const b of p.world.buildings) {
                 claimedBy[b.projectId] = { ...b, playerName: info.name, playerId: id };
             }
         }
     }
+    const layerStatuses = CITY_LAYERS.map((_, i) => getLayerStatus(i, allPlayerData));
 
     const list = document.getElementById('build-projects-list');
     list.innerHTML = '';
 
-    for (const project of BUILDING_PROJECTS) {
-        const isUnlocked = currentPlayer.world.unlockedBiomes.includes(project.biome);
-        const claim = claimedBy[project.id];
-        const isOwn = claim && claim.playerId === currentPlayer.id;
-        const isOther = claim && claim.playerId !== currentPlayer.id;
-        const isComplete = claim && claim.completed;
-        const isInProgress = claim && !claim.completed;
-        const pct = claim ? Math.round((claim.blocksPlaced / project.blocksNeeded) * 100) : 0;
-        const isActive = currentPlayer.world.activeProject === project.id;
-        const canSelect = isUnlocked && !isComplete && !isOther;
+    // Group by layer for display
+    for (let layerIdx = 0; layerIdx < CITY_LAYERS.length; layerIdx++) {
+        const layer = CITY_LAYERS[layerIdx];
+        const layerStatus = layerStatuses[layerIdx];
+        list.innerHTML += `<div style="grid-column:1/-1; font-family:var(--font-mc); font-size:8px; color:var(--gold); padding:8px 0 4px; border-top: 1px solid #333; margin-top:8px">${layer.icon} ${layer.name} ${!layerStatus.unlocked ? '🔒' : layerStatus.complete ? '✅' : ''}</div>`;
 
-        let stateClass = isComplete ? 'completed' : isInProgress ? 'in-progress' : !isUnlocked ? 'locked' : isOther ? 'locked' : '';
+        for (const building of layer.buildings) {
+            const project = BUILDING_PROJECTS.find(p => p.id === building.id);
+            if (!project) continue;
+            const isUnlocked = layerStatus.unlocked;
+            const claim = claimedBy[project.id];
+            const isOwn = claim && claim.playerId === currentPlayer.id;
+            const isOther = claim && claim.playerId !== currentPlayer.id;
+            const isComplete = claim && claim.completed;
+            const isInProgress = claim && !claim.completed;
+            const pct = claim ? Math.round((claim.blocksPlaced / project.blocksNeeded) * 100) : 0;
+            const isActive = currentPlayer.world.activeProject === project.id;
+            const canSelect = isUnlocked && !isComplete && !isOther;
 
-        list.innerHTML += `
-            <div class="build-project-card ${stateClass}" onclick="${canSelect ? `selectBuildProject('${project.id}')` : ''}">
-                <div class="build-card-icon">${project.icon}</div>
-                <div class="build-card-name">${project.name} ${isActive ? '⛏️' : ''}</div>
-                <div class="build-card-desc">${project.desc}</div>
-                <div class="build-card-cost">${project.blocksNeeded} blokken nodig</div>
-                ${isComplete ? `<div style="color:var(--green); font-size:9px; margin-top:4px">✅ Gebouwd door ${claim.playerName}</div>` : ''}
-                ${isOther && !isComplete ? `<div style="color:var(--gold); font-size:9px; margin-top:4px">⛏️ ${claim.playerName} bouwt hieraan (${pct}%)</div>` : ''}
-                ${isOwn && isInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${pct}%; background:${project.color}"></div></div>` : ''}
-                ${!isUnlocked ? '<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Unlock meer biomes</div>' : ''}
-            </div>
-        `;
+            let stateClass = isComplete ? 'completed' : isInProgress ? 'in-progress' : !isUnlocked ? 'locked' : isOther ? 'locked' : '';
+
+            list.innerHTML += `
+                <div class="build-project-card ${stateClass}" onclick="${canSelect ? `selectBuildProject('${project.id}')` : ''}">
+                    <div class="build-card-icon">${project.icon}</div>
+                    <div class="build-card-name">${project.name} ${isActive ? '⛏️' : ''}</div>
+                    <div class="build-card-desc">${project.desc}</div>
+                    <div class="build-card-cost">${project.blocksNeeded} blokken nodig</div>
+                    ${isComplete ? `<div style="color:var(--green); font-size:9px; margin-top:4px">✅ Gebouwd door ${claim.playerName}</div>` : ''}
+                    ${isOther && !isComplete ? `<div style="color:var(--gold); font-size:9px; margin-top:4px">⛏️ ${claim.playerName} bouwt hieraan (${pct}%)</div>` : ''}
+                    ${isOwn && isInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${pct}%; background:${project.color}"></div></div>` : ''}
+                    ${!isUnlocked ? `<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Voltooi ${layerIdx > 0 ? CITY_LAYERS[layerIdx-1].name : ''} eerst</div>` : ''}
+                </div>
+            `;
+        }
     }
 }
 
@@ -493,21 +505,26 @@ function updateMobHealth(damageDealt) {
 
 function initBuildGrid(project, blocksPlaced) {
     const structure = document.getElementById('build-structure');
-    // Use isometric building preview if blueprint exists
-    if (BUILDING_BLUEPRINTS[project.id]) {
-        structure.innerHTML = renderBuilding(project.id, blocksPlaced, project.blocksNeeded);
-        structure.style.transform = 'scale(0.8)';
+    // Find building definition in CITY_LAYERS
+    let buildingDef = null;
+    for (const layer of CITY_LAYERS) {
+        buildingDef = layer.buildings.find(b => b.id === project.id);
+        if (buildingDef) break;
+    }
+    if (buildingDef) {
+        structure.innerHTML = renderBuildingSprite(buildingDef, blocksPlaced, project.blocksNeeded);
+        structure.style.transform = 'scale(0.85)';
+        structure.style.transformOrigin = 'center bottom';
     } else {
-        structure.innerHTML = '';
+        structure.innerHTML = `<div style="font-size:40px">${project.icon}</div>`;
     }
 }
 
 function addBuildBlock(color) {
-    if (currentProject && BUILDING_BLUEPRINTS[currentProject.id]) {
-        const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject.id);
-        if (building) {
-            animateNewBlock(currentProject.id, building.blocksPlaced, currentProject.blocksNeeded);
-        }
+    if (!currentProject) return;
+    const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject.id);
+    if (building) {
+        animateNewBlock(currentProject.id, building.blocksPlaced, currentProject.blocksNeeded);
     }
 }
 
@@ -618,18 +635,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (!result.isComplete) highlightKey(engineState.chars[engineState.pos]);
 
-                    // Word complete — place 2 blocks per word (building finishes halfway)
+                    // Word complete — earn 1 resource per 8 words typed
                     if (result.typed === ' ' || result.isComplete) {
                         soundWordComplete();
                         wordCount++;
 
                         if (currentProject) {
-                            for (let bi = 0; bi < 2; bi++) {
+                            // 1 resource per WORDS_PER_RESOURCE words
+                            if (wordCount % WORDS_PER_RESOURCE === 0) {
                                 const blockResult = placeBlock(currentPlayer);
                                 if (blockResult && blockResult.placed) {
                                     addBuildBlock(currentProject.color);
                                     updateBuildProgress();
-
+                                    // Show resource earned toast
+                                    const resInfo = RESOURCES[currentProject.material];
+                                    if (resInfo) showToast(`${resInfo.icon} +1 ${currentProject.material}!`);
+                                    soundBlockMine();
                                     if (blockResult.completed) {
                                         soundLevelUp();
                                         finishLesson();
