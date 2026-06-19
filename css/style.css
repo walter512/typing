@@ -51,6 +51,7 @@ body {
     overflow-y: auto;
 }
 .screen.active { display: flex; }
+#screen-world.active { display: block; width: 100%; height: 100vh; }
 
 /* ===== Buttons ===== */
 .btn-minecraft {
@@ -215,9 +216,56 @@ body {
 
 /* ===== World Screen — 3D Isometric City ===== */
 #screen-world {
-    background: linear-gradient(180deg, #87CEEB 0%, #5BA3D9 30%, #3d8ac4 50%, #4a9e3e 50.1%, #3d8532 100%);
+    background: linear-gradient(180deg,
+        #0d2444 0%,
+        #1a4a7a 10%,
+        #4a8ab5 20%,
+        #7ec8e3 32%,
+        #a8dce8 44%,
+        #6bb845 56%,
+        #5aa03c 62%,
+        #4a8832 74%,
+        #3a7028 88%,
+        #2a5820 100%
+    );
     overflow: hidden;
     position: relative;
+}
+
+/* Sky ambient layer — clouds & sun */
+.city-sky-layer {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 48%;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+}
+.city-cloud {
+    position: absolute;
+    color: rgba(255,255,255,0.5);
+    font-size: 40px;
+    animation: cloud-drift 50s linear infinite;
+    text-shadow: 0 2px 8px rgba(255,255,255,0.3);
+}
+.city-cloud.c1 { top: 10%; font-size: 60px; animation-duration: 55s; color: rgba(255,255,255,0.4); }
+.city-cloud.c2 { top: 18%; font-size: 35px; animation-duration: 40s; animation-delay: -18s; }
+.city-cloud.c3 { top: 6%; font-size: 45px; animation-duration: 65s; animation-delay: -35s; }
+.city-cloud.c4 { top: 25%; font-size: 30px; animation-duration: 48s; animation-delay: -8s; color: rgba(255,255,255,0.3); }
+@keyframes cloud-drift {
+    0% { left: -15%; }
+    100% { left: 110%; }
+}
+.city-sun {
+    position: absolute;
+    top: 6%;
+    right: 10%;
+    font-size: 50px;
+    animation: sun-glow 5s ease-in-out infinite;
+}
+@keyframes sun-glow {
+    0%, 100% { filter: brightness(1.4) drop-shadow(0 0 15px rgba(255,200,0,0.5)); }
+    50% { filter: brightness(1.7) drop-shadow(0 0 30px rgba(255,200,0,0.8)); }
 }
 
 /* HUD Overlay */
@@ -277,47 +325,15 @@ body {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     overflow: hidden;
-}
-
-.city-sky {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 50%;
-    background: linear-gradient(180deg, #1a3a5c 0%, #4a8ab5 40%, #87CEEB 70%, #b5d8e8 100%);
-    overflow: hidden;
-}
-.city-cloud {
-    position: absolute;
-    font-size: 40px;
-    opacity: 0.6;
-    animation: cloud-drift 45s linear infinite;
-    filter: brightness(1.5);
-}
-.city-cloud.c1 { top: 8%; animation-duration: 50s; font-size: 50px; }
-.city-cloud.c2 { top: 15%; animation-duration: 38s; animation-delay: -15s; }
-.city-cloud.c3 { top: 5%; animation-duration: 55s; animation-delay: -30s; font-size: 35px; }
-@keyframes cloud-drift {
-    0% { left: -10%; }
-    100% { left: 110%; }
-}
-.city-sun {
-    position: absolute;
-    top: 8%;
-    right: 12%;
-    font-size: 50px;
-    filter: brightness(1.5);
-    animation: sun-glow 4s ease-in-out infinite;
-}
-@keyframes sun-glow {
-    0%, 100% { filter: brightness(1.5) drop-shadow(0 0 20px rgba(255,200,0,0.5)); }
-    50% { filter: brightness(1.8) drop-shadow(0 0 40px rgba(255,200,0,0.8)); }
+    width: 100%;
+    height: 100%;
 }
 
 .city-ground {
     position: absolute;
-    top: 50%;
+    top: 46%;
     left: 50%;
-    transform: translate(-50%, -30%);
+    transform: translate(-50%, -25%) scale(1.25);
     width: 1200px;
     height: 600px;
 }
@@ -337,7 +353,29 @@ body {
     width: 32px;
     height: 16px;
     clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    opacity: 0.7;
+}
+.iso-ground-tile.water-tile .iso-top {
+    animation: water-shimmer 3s ease-in-out infinite;
+}
+@keyframes water-shimmer {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.8; }
+}
+
+/* Decorations */
+.iso-decorations {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+.iso-decoration {
+    position: absolute;
+    pointer-events: none;
+}
+@keyframes torch-flicker {
+    0% { filter: drop-shadow(0 0 4px rgba(255,200,0,0.6)); transform: scale(1); }
+    100% { filter: drop-shadow(0 0 8px rgba(255,150,0,0.9)); transform: scale(1.1); }
 }
 
 /* Isometric blocks */
@@ -370,7 +408,8 @@ body {
 }
 
 .iso-block.ghost {
-    opacity: 0.12 !important;
+    opacity: 0.25 !important;
+    filter: saturate(0.3) brightness(1.3);
 }
 .iso-block.filled {
     opacity: 1;
@@ -403,26 +442,31 @@ body {
     filter: drop-shadow(0 0 6px rgba(255,200,0,0.4));
 }
 .iso-building-wrapper.ghost-building {
-    opacity: 0.25;
+    opacity: 0.4;
     cursor: default;
+    filter: saturate(0.2);
 }
 
 /* Building labels in city */
 .city-building-label {
     position: absolute;
-    bottom: -20px;
+    bottom: -22px;
     left: 50%;
     transform: translateX(-50%);
     font-family: var(--font-mc);
     font-size: 6px;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     white-space: nowrap;
-    text-shadow: 1px 1px 2px #000;
+    text-shadow: 1px 1px 3px #000, 0 0 6px rgba(0,0,0,0.8);
     display: flex;
     align-items: center;
     gap: 4px;
+    background: rgba(0,0,0,0.45);
+    padding: 2px 6px;
+    border-radius: 2px;
 }
-.city-building-label.complete { color: var(--gold); }
+.city-building-label.complete { color: var(--gold); background: rgba(0,0,0,0.6); }
+.city-building-label.started { color: #a5d6a7; }
 
 .city-builder-badge {
     display: inline-flex;
@@ -505,11 +549,11 @@ body {
 /* Player chips at bottom */
 .city-players {
     position: absolute;
-    bottom: 60px;
+    bottom: 70px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 12px;
+    gap: 10px;
     z-index: 50;
 }
 .city-player-chip {

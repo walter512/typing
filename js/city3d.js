@@ -370,6 +370,74 @@ function renderBuilding(buildingId, blocksPlaced, totalBlocks) {
     return html;
 }
 
+// Decorative elements placed on the ground plane
+const DECORATIONS = [
+    // Trees scattered around the village
+    { col: 0, row: 3, type: 'tree' },
+    { col: 1, row: 1, type: 'tree' },
+    { col: 5, row: 0, type: 'tree_small' },
+    { col: 17, row: 2, type: 'tree' },
+    { col: 18, row: 5, type: 'tree_small' },
+    { col: 19, row: 8, type: 'tree' },
+    { col: 0, row: 9, type: 'tree' },
+    { col: 18, row: 10, type: 'tree_small' },
+    { col: 3, row: 10, type: 'tree' },
+    { col: 14, row: 0, type: 'tree_small' },
+    // Flowers and grass patches
+    { col: 2, row: 4, type: 'flowers' },
+    { col: 7, row: 8, type: 'flowers' },
+    { col: 15, row: 6, type: 'flowers' },
+    { col: 11, row: 10, type: 'flowers' },
+    { col: 4, row: 1, type: 'flowers' },
+    // Rocks
+    { col: 13, row: 9, type: 'rock' },
+    { col: 19, row: 1, type: 'rock' },
+    { col: 6, row: 10, type: 'rock' },
+    // Torches along paths
+    { col: 9, row: 2, type: 'torch' },
+    { col: 9, row: 4, type: 'torch' },
+    { col: 9, row: 8, type: 'torch' },
+    { col: 4, row: 6, type: 'torch' },
+    { col: 14, row: 6, type: 'torch' },
+];
+
+function renderDecoration(dec) {
+    const pos = isoToScreen(dec.col, dec.row, 0);
+    const w = ISO.BLOCK_W;
+    const h = ISO.BLOCK_H;
+
+    switch (dec.type) {
+        case 'tree':
+            // A 3-block-tall tree: trunk + 2 layers of leaves
+            return `<div class="iso-decoration tree" style="left:${pos.x}px; top:${pos.y - 60}px;">
+                ${renderIsoBlock('oak_log', 0, 0, 0, 'deco', 1)}
+                ${renderIsoBlock('oak_log', 0, 0, 1, 'deco', 1)}
+                <div class="tree-crown" style="left:${-w*0.3}px; top:${-30}px; width:${w*1.6}px; height:${w*1.4}px; background:radial-gradient(ellipse,#3d8b37 0%,#2d6b25 50%,#1e5518 100%); border-radius:50%; position:absolute; opacity:0.9;"></div>
+            </div>`;
+        case 'tree_small':
+            return `<div class="iso-decoration tree-small" style="left:${pos.x}px; top:${pos.y - 40}px;">
+                ${renderIsoBlock('oak_log', 0, 0, 0, 'deco', 1)}
+                <div class="tree-crown" style="left:${-w*0.2}px; top:${-18}px; width:${w*1.4}px; height:${w*1.1}px; background:radial-gradient(ellipse,#4a9e3e 0%,#3a7e30 60%,#2a6020 100%); border-radius:50%; position:absolute; opacity:0.85;"></div>
+            </div>`;
+        case 'flowers':
+            return `<div class="iso-decoration flowers" style="left:${pos.x}px; top:${pos.y}px; font-size:12px; position:absolute; pointer-events:none; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.3));">
+                <span style="position:absolute; left:2px; top:-4px;">🌸</span>
+                <span style="position:absolute; left:12px; top:-8px;">🌼</span>
+                <span style="position:absolute; left:6px; top:2px;">🌺</span>
+            </div>`;
+        case 'rock':
+            return `<div class="iso-decoration" style="left:${pos.x}px; top:${pos.y}px;">
+                ${renderIsoBlock('cobblestone', 0, 0, 0, 'deco', 0.7)}
+            </div>`;
+        case 'torch':
+            return `<div class="iso-decoration torch-deco" style="left:${pos.x + 8}px; top:${pos.y - 16}px; position:absolute; pointer-events:none;">
+                <span style="font-size:14px; filter:drop-shadow(0 0 6px rgba(255,200,0,0.8)); animation: torch-flicker 1.5s ease-in-out infinite alternate;">🕯️</span>
+            </div>`;
+        default:
+            return '';
+    }
+}
+
 // Render the full shared city
 async function renderCity3D(containerId) {
     const container = document.getElementById(containerId);
@@ -389,41 +457,51 @@ async function renderCity3D(containerId) {
     // Calculate city stats
     const completedCount = Object.values(allBuildings).filter(b => b.completed).length;
     const totalProjects = BUILDING_PROJECTS.length;
+    const startedCount = Object.values(allBuildings).length;
 
     // Build the scene
     let html = '';
 
-    // Sky with gradient and clouds
-    html += '<div class="city-sky">';
-    html += '<div class="city-cloud c1">☁️</div>';
-    html += '<div class="city-cloud c2">☁️</div>';
-    html += '<div class="city-cloud c3">☁️</div>';
-    html += '<div class="city-sun">☀️</div>';
-    html += '</div>';
-
-    // Ground plane
+    // Ground plane — contains all isometric content
     html += '<div class="city-ground">';
+
+    // Ground tiles
     html += '<div class="iso-ground">';
     for (let r = 0; r < ISO.GROUND_ROWS; r++) {
         for (let c = 0; c < ISO.GROUND_COLS; c++) {
             const pos = isoToScreen(c, r, 0);
-            const isPath = (r === 6 && c >= 2 && c <= 16) ||
-                           (c === 9 && r >= 1 && r <= 9);
-            const groundType = isPath ? 'dirt' : 'grass';
+            // Paths: crossroads through the village
+            const isPathH = (r === 6 && c >= 1 && c <= 18);
+            const isPathV = (c === 9 && r >= 1 && r <= 10);
+            const isPath = isPathH || isPathV;
+            // Water: small pond
+            const isWater = (r === 11 && c >= 16 && c <= 18) || (r === 10 && c >= 17 && c <= 18);
+            const groundType = isWater ? 'water' : isPath ? 'dirt' : 'grass';
             const bt = BLOCK_TYPES[groundType];
-            html += `<div class="iso-ground-tile" style="
-                left:${pos.x}px; top:${pos.y}px;
+
+            // Vary grass color slightly for natural look
+            let tileOpacity = isPath ? 0.8 : (0.55 + Math.sin(c * 3.7 + r * 2.3) * 0.15);
+            if (isWater) tileOpacity = 0.7;
+
+            html += `<div class="iso-ground-tile ${isWater ? 'water-tile' : ''}" style="
+                left:${pos.x}px; top:${pos.y}px; opacity:${tileOpacity};
             ">
                 <div class="iso-top" style="background:${bt.top}"></div>
             </div>`;
         }
+    }
+    html += '</div>'; // iso-ground
+
+    // Decorations layer (behind buildings)
+    html += '<div class="iso-decorations">';
+    for (const dec of DECORATIONS) {
+        html += renderDecoration(dec);
     }
     html += '</div>';
 
     // Buildings layer (sorted for proper depth)
     html += '<div class="iso-buildings">';
 
-    // Render all buildings in depth order (back to front)
     const sortedProjects = [...BUILDING_PROJECTS].sort((a, b) => {
         const pa = BUILDING_POSITIONS[a.id] || { col: 0, row: 0 };
         const pb = BUILDING_POSITIONS[b.id] || { col: 0, row: 0 };
@@ -439,18 +517,19 @@ async function renderCity3D(containerId) {
         const isComplete = building && building.completed;
         const isStarted = building && blocksPlaced > 0;
         const screenPos = isoToScreen(pos.col, pos.row, 0);
-
-        // Only show buildings that have been started, or show ghost for available ones
         const showGhost = !isStarted;
 
         const builderBadge = building ?
-            `<div class="city-builder-badge" style="background:${getPlayerColor(building.playerId)}">${building.playerName.charAt(0)}</div>` : '';
+            `<span class="city-builder-badge" style="background:${getPlayerColor(building.playerId)}">${building.playerName.charAt(0)}</span>` : '';
 
         const pct = building ? Math.round((blocksPlaced / project.blocksNeeded) * 100) : 0;
         const progressBar = !isComplete && isStarted ?
             `<div class="city-building-progress"><div class="city-building-progress-fill" style="width:${pct}%"></div><span>${pct}%</span></div>` : '';
 
-        const label = `<div class="city-building-label ${isComplete ? 'complete' : ''}">${project.icon} ${project.name}${builderBadge}</div>`;
+        const labelClass = isComplete ? 'complete' : isStarted ? 'started' : '';
+        const label = `<div class="city-building-label ${labelClass}">
+            ${project.icon} ${project.name}${builderBadge}
+        </div>`;
 
         html += `<div class="iso-building-wrapper ${isComplete ? 'complete' : ''} ${showGhost ? 'ghost-building' : ''}"
                       style="left:${screenPos.x}px; top:${screenPos.y}px;"
@@ -465,7 +544,7 @@ async function renderCity3D(containerId) {
     html += '</div>'; // iso-buildings
     html += '</div>'; // city-ground
 
-    // City progress bar at top
+    // City header: name + progress
     html += `<div class="city-header-bar">
         <div class="city-title">🏘️ Ons Dorp</div>
         <div class="city-total-progress">
@@ -474,7 +553,7 @@ async function renderCity3D(containerId) {
         </div>
     </div>`;
 
-    // Player contributions
+    // Player contributions bar — above action bar
     html += '<div class="city-players">';
     for (const [id, info] of Object.entries(PLAYERS)) {
         const player = await getPlayer(id);
