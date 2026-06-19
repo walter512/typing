@@ -135,8 +135,9 @@ body {
 #screen-profiles {
     background: linear-gradient(180deg, #0a0a1e 0%, #1a1a3e 50%, #0d2137 100%);
     justify-content: center;
-    gap: 40px;
+    gap: 30px;
     position: relative;
+    padding-bottom: 80px;
 }
 .title-banner { text-align: center; }
 .title-banner h1 {
@@ -202,6 +203,8 @@ body {
     gap: 12px;
     position: absolute;
     bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 .floating-item {
     position: absolute;
@@ -229,40 +232,70 @@ body {
     position: relative;
 }
 
-/* Sky ambient layer — clouds & sun (kept but subtle) */
-.city-sky-layer {
+/* ===== Sky Layer ===== */
+.sky-layer {
     position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 45%;
+    top: 0; left: 0; right: 0; bottom: 0;
     overflow: hidden;
-    z-index: 1;
+    z-index: 0;
     pointer-events: none;
+    transition: background 2s;
 }
-.city-cloud {
+.sky-day { background: linear-gradient(180deg, #0d2444 0%, #1a4a7a 10%, #4a8ab5 25%, #7ec8e3 45%, #a8dce8 65%, #bde4f0 100%); }
+.sky-dawn { background: linear-gradient(180deg, #1a1a3e 0%, #4a3060 15%, #c06050 35%, #e8a040 55%, #f0d080 100%); }
+.sky-sunset { background: linear-gradient(180deg, #1a1a3e 0%, #3a2060 15%, #c04040 35%, #e07030 55%, #f0c060 100%); }
+.sky-night { background: linear-gradient(180deg, #050510 0%, #0a0a20 30%, #101030 60%, #151540 100%); }
+
+.cloud {
     position: absolute;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.45);
     font-size: 40px;
     animation: cloud-drift 50s linear infinite;
-    text-shadow: 0 2px 8px rgba(255,255,255,0.3);
+    text-shadow: 0 2px 8px rgba(255,255,255,0.2);
 }
-.city-cloud.c1 { top: 10%; font-size: 60px; animation-duration: 55s; color: rgba(255,255,255,0.4); }
-.city-cloud.c2 { top: 18%; font-size: 35px; animation-duration: 40s; animation-delay: -18s; }
-.city-cloud.c3 { top: 6%; font-size: 45px; animation-duration: 65s; animation-delay: -35s; }
-.city-cloud.c4 { top: 25%; font-size: 30px; animation-duration: 48s; animation-delay: -8s; color: rgba(255,255,255,0.3); }
+.cloud.c1 { top: 8%; font-size: 70px; animation-duration: 60s; }
+.cloud.c2 { top: 16%; font-size: 40px; animation-duration: 42s; animation-delay: -18s; }
+.cloud.c3 { top: 5%; font-size: 55px; animation-duration: 70s; animation-delay: -35s; opacity: 0.6; }
+.cloud.c4 { top: 22%; font-size: 32px; animation-duration: 48s; animation-delay: -8s; opacity: 0.4; }
+.cloud.c5 { top: 12%; font-size: 50px; animation-duration: 55s; animation-delay: -25s; opacity: 0.5; }
 @keyframes cloud-drift {
-    0% { left: -15%; }
+    0% { left: -20%; }
     100% { left: 110%; }
 }
-.city-sun {
+
+.sun {
+    position: absolute;
+    top: 5%;
+    right: 12%;
+    font-size: 56px;
+    animation: sun-glow 5s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(255,200,0,0.6));
+}
+.moon {
     position: absolute;
     top: 6%;
-    right: 10%;
-    font-size: 50px;
-    animation: sun-glow 5s ease-in-out infinite;
+    right: 15%;
+    font-size: 44px;
+    animation: moon-glow 6s ease-in-out infinite;
 }
 @keyframes sun-glow {
-    0%, 100% { filter: brightness(1.4) drop-shadow(0 0 15px rgba(255,200,0,0.5)); }
-    50% { filter: brightness(1.7) drop-shadow(0 0 30px rgba(255,200,0,0.8)); }
+    0%, 100% { filter: brightness(1.3) drop-shadow(0 0 15px rgba(255,200,0,0.5)); }
+    50% { filter: brightness(1.6) drop-shadow(0 0 30px rgba(255,200,0,0.8)); }
+}
+@keyframes moon-glow {
+    0%, 100% { filter: brightness(0.9) drop-shadow(0 0 10px rgba(200,220,255,0.3)); }
+    50% { filter: brightness(1.1) drop-shadow(0 0 20px rgba(200,220,255,0.5)); }
+}
+
+.star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    animation: star-twinkle 3s ease-in-out infinite;
+}
+@keyframes star-twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
 }
 
 /* HUD Overlay */
@@ -317,256 +350,292 @@ body {
 .rc-icon { font-style: normal; }
 .hud-stat { font-size: 9px; color: var(--text-secondary); }
 
-/* ===== 2D City with Block Effect ===== */
+/* ===== City Container ===== */
 .city-container {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* ===== Wijk Tabs ===== */
+.wijk-tabs {
+    position: absolute;
+    top: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    z-index: 60;
+    background: rgba(0,0,0,0.5);
+    padding: 4px 8px;
+    backdrop-filter: blur(6px);
+    border-radius: 4px;
+}
+.wijk-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-family: var(--font-mc);
+    font-size: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+}
+.wijk-tab:hover { background: rgba(255,255,255,0.1); }
+.wijk-tab.active { background: rgba(76,175,80,0.3); color: #fff; }
+.wijk-tab.complete { color: var(--gold); }
+.wijk-tab.locked { opacity: 0.35; cursor: default; }
+.wijk-tab-icon { font-size: 12px; }
+.wijk-tab-name { display: none; }
+.wijk-tab.active .wijk-tab-name,
+.wijk-tab.complete .wijk-tab-name { display: inline; }
+
+/* ===== Panorama ===== */
+.city-panorama {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+}
+.city-panorama::-webkit-scrollbar { display: none; }
+
+/* ===== Wijk ===== */
+.wijk {
+    min-width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: flex-end;
-    padding: 44px 0 60px;
-}
-
-.city-layers {
-    display: flex;
-    flex-direction: column-reverse;
     align-items: center;
-    gap: 0;
-    width: 100%;
-    max-width: 1000px;
+    position: relative;
+    scroll-snap-align: center;
+    padding: 0 20px 100px;
 }
 
-.city-layer { width: 100%; text-align: center; }
-
-.city-layer.locked {
-    padding: 8px;
-    opacity: 0.5;
+.wijk-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    z-index: 10;
 }
-.layer-lock {
+.wijk-name {
+    font-family: var(--font-mc);
+    font-size: 12px;
+    color: #fff;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+}
+.wijk-progress-text {
     font-family: var(--font-mc);
     font-size: 9px;
-    color: var(--text-secondary);
-    padding: 4px 12px;
-    background: rgba(0,0,0,0.3);
-    display: inline-block;
-}
-.layer-lock-hint {
-    font-size: 7px;
     color: var(--gold);
-    margin-top: 2px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+}
+.wijk-complete-badge {
+    font-family: var(--font-mc);
+    font-size: 11px;
+    color: var(--gold);
+    text-shadow: 0 0 10px rgba(255,193,7,0.4);
+    margin-bottom: 8px;
+    z-index: 10;
 }
 
-.layer-buildings {
+/* ===== Wijk Buildings ===== */
+.wijk-buildings {
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    gap: 40px;
-    padding: 8px 0 0;
+    gap: clamp(20px, 5vw, 60px);
+    padding: 0 20px 0;
+    z-index: 5;
+}
+.wijk-silhouette .city-block.ghost {
+    opacity: 0.08;
+    filter: saturate(0) brightness(0.5);
 }
 
-.city-building-slot {
+.wijk-building-slot {
     position: relative;
-    cursor: pointer;
     transition: transform 0.2s;
 }
-.city-building-slot:hover { transform: translateY(-3px); }
+.wijk-building-slot.clickable { cursor: pointer; }
+.wijk-building-slot.clickable:hover { transform: translateY(-4px); }
+.wijk-building-slot.done { filter: drop-shadow(0 0 6px rgba(76,175,80,0.4)); }
 
+/* ===== Building Sprite & Blocks ===== */
 .building-sprite {
     display: grid;
     gap: 1px;
 }
 
-/* 2D blocks with 3D bevel effect */
 .city-block {
-    width: 36px;
-    height: 36px;
+    width: 14px; height: 14px;
     box-shadow:
-        inset 2px 2px 0 rgba(255,255,255,0.25),
-        inset -2px -2px 0 rgba(0,0,0,0.25);
-    transition: opacity 0.3s;
+        inset 1px 1px 0 rgba(255,255,255,0.25),
+        inset -1px -1px 0 rgba(0,0,0,0.25);
 }
 .city-block.empty {
     background: transparent !important;
     box-shadow: none;
 }
 .city-block.ghost {
-    opacity: 0.25;
-    filter: saturate(0.3) brightness(1.3);
+    opacity: 0.18;
+    filter: saturate(0.2) brightness(1.4);
+    border: 1px dashed rgba(255,255,255,0.08);
+    box-shadow: none;
 }
 .city-block.solid {
     opacity: 1;
+    animation: block-pop 0.2s ease-out;
+}
+.city-block.lava-glow {
+    animation: lava-pulse 1.5s ease-in-out infinite;
+}
+.city-block.light-glow {
+    box-shadow:
+        inset 1px 1px 0 rgba(255,255,255,0.3),
+        inset -1px -1px 0 rgba(0,0,0,0.15),
+        0 0 6px 2px rgba(255,204,0,0.3);
 }
 
-/* Building info — hover only */
-.building-name {
+@keyframes block-pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+@keyframes lava-pulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.4); }
+}
+
+/* ===== Building Labels & Badges ===== */
+.building-label {
+    text-align: center;
+    margin-top: 4px;
+    z-index: 10;
+}
+.building-label-name {
     font-family: var(--font-mc);
     font-size: 7px;
     color: var(--text-primary);
-    background: rgba(0,0,0,0.7);
-    padding: 2px 6px;
-    border-radius: 2px;
-    opacity: 0;
-    transition: opacity 0.2s;
-    white-space: nowrap;
-    position: absolute;
-    bottom: -18px;
-    left: 50%;
-    transform: translateX(-50%);
-    pointer-events: none;
-    z-index: 10;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    display: block;
 }
-.city-building-slot:hover .building-name { opacity: 1; }
+.building-label-pct {
+    font-family: var(--font-mc);
+    font-size: 7px;
+    color: var(--gold);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
 
 .building-player {
     position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 18px; height: 18px;
+    top: -6px;
+    right: -6px;
+    width: 16px; height: 16px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
+    font-size: 8px;
     font-family: var(--font-mc);
     color: #fff;
-    border: 2px solid rgba(0,0,0,0.3);
-    z-index: 5;
+    border: 2px solid rgba(0,0,0,0.4);
+    z-index: 15;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
-.building-progress {
+/* ===== Wijk Ground ===== */
+.wijk-ground {
     width: 100%;
-    height: 4px;
-    background: rgba(0,0,0,0.4);
-    margin-top: 2px;
-    border-radius: 1px;
-}
-.building-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #66bb6a, #4caf50);
-    border-radius: 1px;
-    transition: width 0.3s;
-}
-
-/* Layer floor — row of blocks */
-.layer-floor {
-    height: 16px;
-    margin: 0 auto;
-    max-width: 600px;
-    display: flex;
-}
-.floor-block {
-    flex: 1;
-    height: 100%;
-    box-shadow:
-        inset 2px 2px 0 rgba(255,255,255,0.2),
-        inset -2px -2px 0 rgba(0,0,0,0.2);
-}
-
-/* City ground — grass blocks */
-.city-ground-2d {
-    width: 100%;
-    max-width: 600px;
-    display: flex;
-    flex-direction: column;
+    max-width: 800px;
+    z-index: 2;
     flex-shrink: 0;
 }
-.ground-row {
-    display: flex;
+.ground-strip {
     width: 100%;
-}
-.ground-block {
-    flex: 1;
-    height: 22px;
+    height: 14px;
     box-shadow:
         inset 2px 2px 0 rgba(255,255,255,0.15),
-        inset -2px -2px 0 rgba(0,0,0,0.2);
+        inset -2px -2px 0 rgba(0,0,0,0.15);
+}
+.ground-sub {
+    height: 20px;
 }
 
-/* Layer complete indicator */
-.layer-complete-banner {
-    font-family: var(--font-mc);
-    font-size: 7px;
-    color: var(--gold);
-    padding: 2px 0;
-}
-
-/* City header bar — minimal */
-.city-header-bar {
+/* ===== Locked Wijk Overlay ===== */
+.wijk-locked-overlay {
     position: absolute;
-    top: 48px;
-    right: 16px;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(2px);
+}
+.wijk-lock-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    animation: lock-bob 3s ease-in-out infinite;
+}
+@keyframes lock-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+.wijk-lock-text {
+    font-family: var(--font-mc);
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+    margin-bottom: 6px;
+}
+.wijk-lock-hint {
+    font-family: var(--font-mc);
+    font-size: 8px;
+    color: var(--gold);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+}
+
+/* ===== Team Bar ===== */
+.team-bar {
+    position: absolute;
+    bottom: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 55;
+}
+.team-member {
     display: flex;
     align-items: center;
-    gap: 8px;
-    z-index: 50;
-    opacity: 0.6;
+    gap: 6px;
+    background: rgba(0,0,0,0.6);
+    padding: 5px 10px;
+    border-left: 3px solid var(--player-color);
+    backdrop-filter: blur(6px);
 }
-.city-title {
+.team-avatar {
+    width: 20px; height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: var(--font-mc);
     font-size: 10px;
     color: #fff;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+    border-radius: 3px;
 }
-.city-total-progress {
-    width: 80px;
-    height: 8px;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.15);
-    position: relative;
-    border-radius: 2px;
-}
-.city-total-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--green), var(--gold));
-    transition: width 0.5s;
-    border-radius: 2px;
-}
-.city-total-progress span {
-    position: absolute;
-    right: -28px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-family: var(--font-mc);
-    font-size: 6px;
-    color: rgba(255,255,255,0.6);
-    text-shadow: 1px 1px 0 #000;
-}
-
-/* Player chips — inline in city */
-.city-players {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-    padding: 8px 0 4px;
-    opacity: 0.85;
-    flex-shrink: 0;
-}
-.city-player-chip {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(0,0,0,0.5);
-    padding: 4px 8px;
-    border: 1px solid;
-    backdrop-filter: blur(4px);
-    border-radius: 2px;
-}
-.city-player-avatar {
-    width: 16px; height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    color: #fff;
-    font-weight: bold;
-    border-radius: 2px;
-}
-.city-player-name { font-size: 8px; color: var(--text-primary); }
-.city-player-stat { font-size: 7px; color: var(--text-secondary); }
-.city-player-building { font-size: 6px; color: var(--gold); }
+.team-info { display: flex; flex-direction: column; gap: 2px; }
+.team-name { font-family: var(--font-mc); font-size: 9px; color: #fff; }
+.team-status { font-family: var(--font-mc); font-size: 7px; color: var(--text-secondary); }
 
 /* World action bar */
 .world-action-bar {
