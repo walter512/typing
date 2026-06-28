@@ -980,41 +980,47 @@ async function renderCity(containerId) {
             }
         }
 
-        // Current wijk: show ALL buildings this player has worked on
-        const activeBuilding = pd?.world?.activeProject;
+        // Show buildings from all accessible wijken (active + ahead)
         let hasBuildings = false;
+        let showChoosePrompt = false;
 
-        for (const building of activeLayer.buildings) {
-            const bld = pd?.world?.buildings?.find(b => b.projectId === building.id);
-            if (!bld) continue;
-            const blocksPlaced = bld.blocksPlaced || 0;
-            const isCompleted = bld.completed;
-            const pct = Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100));
-            const clickable = isCurrentPlayer && !isCompleted;
+        for (let wi = activeWijk; wi < CITY_LAYERS.length; wi++) {
+            const layer = CITY_LAYERS[wi];
+            if (!isLayerAccessible(wi, pd, layerStatuses)) break;
 
-            html += `<div class="column-building ${isCompleted ? 'done' : 'active'} ${clickable ? 'clickable' : ''}"
-                ${clickable ? `onclick="handleCityBuildingClick('${building.id}')"` : ''}>
-                ${renderBuildingSprite(building, blocksPlaced, building.blocksNeeded)}
-                <div class="building-label">
-                    <span class="building-label-name">${building.name}</span>
-                    ${!isCompleted ? `<span class="building-label-pct">${pct}%</span>` : '<span class="building-label-pct">✅</span>'}
-                </div>
-            </div>`;
-            hasBuildings = true;
+            for (const building of layer.buildings) {
+                const bld = pd?.world?.buildings?.find(b => b.projectId === building.id);
+                if (!bld) continue;
+                const blocksPlaced = bld.blocksPlaced || 0;
+                const isCompleted = bld.completed;
+                const pct = Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100));
+                const clickable = isCurrentPlayer && !isCompleted;
+
+                html += `<div class="column-building ${isCompleted ? 'done' : 'active'} ${clickable ? 'clickable' : ''}"
+                    ${clickable ? `onclick="handleCityBuildingClick('${building.id}')"` : ''}>
+                    ${renderBuildingSprite(building, blocksPlaced, building.blocksNeeded)}
+                    <div class="building-label">
+                        <span class="building-label-name">${building.name}</span>
+                        ${!isCompleted ? `<span class="building-label-pct">${pct}%</span>` : '<span class="building-label-pct">✅</span>'}
+                    </div>
+                </div>`;
+                hasBuildings = true;
+            }
+
+            if (isCurrentPlayer) {
+                const allDoneInLayer = layer.buildings.every(b => {
+                    const bld = pd?.world?.buildings?.find(x => x.projectId === b.id);
+                    return bld && bld.completed;
+                });
+                if (!allDoneInLayer) showChoosePrompt = true;
+            }
         }
 
-        // Show "choose" prompt for current player if they can still build
-        if (isCurrentPlayer && activeStatus.unlocked) {
-            const allDone = activeLayer.buildings.every(b => {
-                const bld = pd?.world?.buildings?.find(x => x.projectId === b.id);
-                return bld && bld.completed;
-            });
-            if (!allDone) {
-                html += `<div class="column-building choose" onclick="openBuildMenu()">
-                    <div class="choose-prompt">⛏</div>
-                    <div class="building-label"><span class="building-label-name">Kies gebouw</span></div>
-                </div>`;
-            }
+        if (showChoosePrompt) {
+            html += `<div class="column-building choose" onclick="openBuildMenu()">
+                <div class="choose-prompt">⛏</div>
+                <div class="building-label"><span class="building-label-name">Kies gebouw</span></div>
+            </div>`;
         }
 
         html += '</div>'; // column-buildings
