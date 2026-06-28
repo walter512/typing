@@ -153,16 +153,30 @@ async function getAvailableProjects(player) {
         playerDataMap[id] = await getPlayer(id);
     }
 
-    // Show buildings in accessible layers (unlocked + 1 wijk vooruit)
     const layerStatuses = CITY_LAYERS.map((_, i) => getLayerStatus(i, playerDataMap));
     const available = [];
     for (let i = 0; i < CITY_LAYERS.length; i++) {
         if (!isLayerAccessible(i, player, layerStatuses)) continue;
 
         const layer = CITY_LAYERS[i];
+
+        // Check if player earned full access (3 buildings done in prev wijk)
+        let fullAccess = (i === 0);
+        if (i > 0) {
+            const prevLayer = CITY_LAYERS[i - 1];
+            let doneCount = 0;
+            for (const b of prevLayer.buildings) {
+                const bld = player?.world?.buildings?.find(x => x.projectId === b.id);
+                if (bld && bld.completed) doneCount++;
+            }
+            fullAccess = doneCount >= BUILDINGS_PER_PLAYER_TO_ADVANCE;
+        }
+
         for (const b of layer.buildings) {
             const myBld = player.world.buildings.find(x => x.projectId === b.id);
             if (myBld && myBld.completed) continue;
+            // In higher wijken without full access: only show already-started buildings
+            if (!fullAccess && (!myBld || myBld.blocksPlaced === 0)) continue;
             const proj = BUILDING_PROJECTS.find(p => p.id === b.id);
             if (proj) available.push(proj);
         }

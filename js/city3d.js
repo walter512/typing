@@ -721,6 +721,14 @@ const BUILDINGS_PER_PLAYER_TO_ADVANCE = 3;
 function isLayerAccessible(layerIndex, player, layerStatuses) {
     if (layerIndex === 0) return true;
 
+    // Allow finishing buildings already started in this wijk
+    const layer = CITY_LAYERS[layerIndex];
+    const hasStarted = layer.buildings.some(b => {
+        const bld = player?.world?.buildings?.find(x => x.projectId === b.id);
+        return bld && !bld.completed;
+    });
+    if (hasStarted) return true;
+
     const prevLayer = CITY_LAYERS[layerIndex - 1];
     let playerDoneCount = 0;
     for (const b of prevLayer.buildings) {
