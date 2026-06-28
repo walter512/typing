@@ -850,6 +850,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function placeBlockInline() {
     if (!currentProject) return;
+    const stats = getEngineStats();
+    const minAccuracy = currentPlayer.age <= 8 ? 75 : 85;
+    if (stats.accuracy < minAccuracy) {
+        showToast(`⚠️ ${stats.accuracy}% — typ nauwkeuriger! (min ${minAccuracy}%)`);
+        return;
+    }
     const blockResult = placeBlock(currentPlayer);
     if (blockResult && blockResult.placed) {
         sessionBlocksPlaced++;

@@ -76,7 +76,7 @@ const BLOCK_COLORS = {
 };
 
 /* ===== City Wijken (Neighborhoods) ===== */
-/* 5 wijken, each with 3 buildings. All 3 must be completed to unlock next wijk. */
+/* 5 wijken, each with 7 buildings. All buildings in a wijk must be completed to unlock next wijk. */
 /* Buildings use 14px blocks for detailed pixel art */
 const CITY_LAYERS = [
     {
@@ -90,7 +90,7 @@ const CITY_LAYERS = [
                 id: 'houten_hut',
                 name: 'Houten Hut',
                 icon: '🏠',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'hout',
                 grid: [
                     [null,null,null,'chimney',null,null,null,null],
@@ -107,7 +107,7 @@ const CITY_LAYERS = [
                 id: 'werkplaats',
                 name: 'Werkplaats',
                 icon: '🔨',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'hout',
                 grid: [
                     [null,null,'torch',null,null,null,null],
@@ -123,7 +123,7 @@ const CITY_LAYERS = [
                 id: 'boerderij',
                 name: 'Boerderij',
                 icon: '🌾',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'hout',
                 grid: [
                     [null,null,'roof_oak','roof_oak','roof_oak',null,null,null,null],
@@ -133,6 +133,65 @@ const CITY_LAYERS = [
                     ['oak_log','hay','hay','hay','hay','door',null,null,null],
                     ['oak_planks','oak_planks','oak_planks','oak_planks','oak_planks','oak_planks','fence','fence','fence'],
                     [null,null,null,null,null,null,'hay','water','hay'],
+                ]
+            },
+            {
+                id: 'waterput',
+                name: 'Waterput',
+                icon: '🪣',
+                blocksNeeded: 20,
+                material: 'hout',
+                grid: [
+                    [null,null,'roof_oak',null,null],
+                    [null,'oak_log',null,'oak_log',null],
+                    ['fence',null,null,null,'fence'],
+                    ['cobblestone','cobblestone','water','cobblestone','cobblestone'],
+                    ['cobblestone','cobblestone','water','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'pad',
+                name: 'Pad',
+                icon: '🛤️',
+                blocksNeeded: 20,
+                material: 'hout',
+                grid: [
+                    ['torch',null,null,null,null,null,'torch'],
+                    ['fence',null,null,null,null,null,'fence'],
+                    ['fence',null,null,null,null,null,'fence'],
+                    ['oak_planks','oak_planks','oak_planks','oak_planks','oak_planks','oak_planks','oak_planks'],
+                    ['dirt','dirt','oak_planks','oak_planks','oak_planks','dirt','dirt'],
+                ]
+            },
+            {
+                id: 'uitkijktoren',
+                name: 'Uitkijktoren',
+                icon: '🗼',
+                blocksNeeded: 20,
+                material: 'hout',
+                grid: [
+                    [null,'torch',null],
+                    ['roof_oak','roof_oak','roof_oak'],
+                    ['oak_log',null,'oak_log'],
+                    ['fence','oak_planks','fence'],
+                    [null,'oak_log',null],
+                    [null,'oak_log',null],
+                    [null,'oak_log',null],
+                    ['oak_planks','oak_planks','oak_planks'],
+                ]
+            },
+            {
+                id: 'kampvuur',
+                name: 'Kampvuur',
+                icon: '🔥',
+                blocksNeeded: 20,
+                material: 'hout',
+                grid: [
+                    [null,null,'torch',null,null],
+                    [null,'lava_bright','lava','lava_bright',null],
+                    ['oak_log','lava','lava_bright','lava','oak_log'],
+                    [null,'oak_log','cobblestone','oak_log',null],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
                 ]
             },
         ]
@@ -148,7 +207,7 @@ const CITY_LAYERS = [
                 id: 'stenen_huis',
                 name: 'Stenen Huis',
                 icon: '🏠',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'steen',
                 grid: [
                     [null,null,null,null,'chimney',null,null,null,null],
@@ -165,7 +224,7 @@ const CITY_LAYERS = [
                 id: 'smederij',
                 name: 'Smederij',
                 icon: '⚒️',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'steen',
                 grid: [
                     [null,null,null,'chimney','chimney',null,null,null],
@@ -181,7 +240,7 @@ const CITY_LAYERS = [
                 id: 'bibliotheek',
                 name: 'Bibliotheek',
                 icon: '📚',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'steen',
                 grid: [
                     [null,'roof_oak','roof_oak','roof_oak','roof_oak','roof_oak','roof_oak',null],
@@ -190,6 +249,64 @@ const CITY_LAYERS = [
                     ['stone_brick','glass','bookshelf','bookshelf','bookshelf','bookshelf','glass','stone_brick'],
                     ['stone_brick','stone_brick','glass','glass','door','glass','stone_brick','stone_brick'],
                     ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'bakkerij',
+                name: 'Bakkerij',
+                icon: '🍞',
+                blocksNeeded: 20,
+                material: 'steen',
+                grid: [
+                    [null,null,null,null,null,null,'chimney',null],
+                    [null,'roof_red','roof_red','roof_red','roof_red','roof_red','roof_red',null],
+                    ['roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red'],
+                    ['stone_brick','glass','stone_brick','stone_brick','stone_brick','glass','stone_brick','stone_brick'],
+                    ['stone_brick','glass','stone_brick','furnace','furnace_glow','glass','stone_brick','stone_brick'],
+                    ['stone_brick','stone_brick','door','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'brug',
+                name: 'Brug',
+                icon: '🌉',
+                blocksNeeded: 20,
+                material: 'steen',
+                grid: [
+                    ['stone_brick',null,null,null,null,null,'stone_brick'],
+                    ['stone_brick','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
+                    [null,'water','water','water','water','water',null],
+                    [null,'water','water','water','water','water',null],
+                ]
+            },
+            {
+                id: 'dorps_waterput',
+                name: 'Waterput',
+                icon: '⛲',
+                blocksNeeded: 20,
+                material: 'steen',
+                grid: [
+                    [null,null,'roof_stone',null,null],
+                    [null,'fence',null,'fence',null],
+                    ['stone_brick','stone_brick','water','stone_brick','stone_brick'],
+                    ['stone_brick','stone_brick','water','stone_brick','stone_brick'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'tuin',
+                name: 'Tuin',
+                icon: '🌷',
+                blocksNeeded: 20,
+                material: 'steen',
+                grid: [
+                    [null,'flower_r',null,'flower_y',null,'flower_r',null],
+                    [null,'leaves','grass','leaves','grass','leaves',null],
+                    ['fence','grass','flower_y','grass','flower_r','grass','fence'],
+                    ['fence','grass','leaves','grass','leaves','grass','fence'],
+                    ['cobblestone','dirt','dirt','dirt','dirt','dirt','cobblestone'],
                 ]
             },
         ]
@@ -205,7 +322,7 @@ const CITY_LAYERS = [
                 id: 'markthal',
                 name: 'Markthal',
                 icon: '🏪',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'ijzer',
                 grid: [
                     [null,null,'flag_red',null,null,null,'flag_blue',null,null],
@@ -221,7 +338,7 @@ const CITY_LAYERS = [
                 id: 'wachttoren',
                 name: 'Wachttoren',
                 icon: '🗼',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'ijzer',
                 grid: [
                     [null,null,'torch',null,null],
@@ -239,7 +356,7 @@ const CITY_LAYERS = [
                 id: 'mijnschacht',
                 name: 'Mijnschacht',
                 icon: '⛏️',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'ijzer',
                 grid: [
                     ['oak_log','oak_planks','torch','oak_planks','torch','oak_planks','oak_log'],
@@ -248,6 +365,67 @@ const CITY_LAYERS = [
                     [null,'cobblestone','cobblestone','gold_block','cobblestone','cobblestone',null],
                     ['cobblestone','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick','cobblestone'],
                     ['stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d'],
+                ]
+            },
+            {
+                id: 'herberg',
+                name: 'Herberg',
+                icon: '🍺',
+                blocksNeeded: 20,
+                material: 'ijzer',
+                grid: [
+                    [null,null,'chimney',null,null,null,null,null,null],
+                    [null,'roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red',null],
+                    ['roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red'],
+                    ['stone_brick','glass','glass','stone_brick','stone_brick','stone_brick','glass','glass','stone_brick'],
+                    ['stone_brick','glass','glass','stone_brick','lantern','stone_brick','glass','glass','stone_brick'],
+                    ['stone_brick','stone_brick','stone_brick','door','door','stone_brick','stone_brick','stone_brick','stone_brick'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'stadsmuur',
+                name: 'Stadsmuur',
+                icon: '🧱',
+                blocksNeeded: 20,
+                material: 'ijzer',
+                grid: [
+                    ['stone_brick',null,'stone_brick',null,'stone_brick',null,'stone_brick'],
+                    ['stone_brick','stone_brick_d','stone_brick','stone_brick_d','stone_brick','stone_brick_d','stone_brick'],
+                    ['stone_brick','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick'],
+                    ['stone_brick','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick'],
+                    ['stone_brick','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick','stone_brick'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'paardstal',
+                name: 'Paardstal',
+                icon: '🐴',
+                blocksNeeded: 20,
+                material: 'ijzer',
+                grid: [
+                    [null,'roof_oak','roof_oak','roof_oak','roof_oak','roof_oak','roof_oak',null],
+                    ['roof_dark','roof_oak','roof_oak','roof_oak','roof_oak','roof_oak','roof_oak','roof_dark'],
+                    ['oak_log',null,null,'fence',null,null,null,'oak_log'],
+                    ['oak_log',null,'hay','fence',null,'hay',null,'oak_log'],
+                    ['oak_log','hay','hay','fence','hay','hay',null,'oak_log'],
+                    ['oak_planks','oak_planks','oak_planks','oak_planks','oak_planks','oak_planks','oak_planks','oak_planks'],
+                ]
+            },
+            {
+                id: 'fontein',
+                name: 'Fontein',
+                icon: '⛲',
+                blocksNeeded: 20,
+                material: 'ijzer',
+                grid: [
+                    [null,null,null,'water',null,null,null],
+                    [null,null,'water','water','water',null,null],
+                    [null,'stone_brick','water','water','water','stone_brick',null],
+                    [null,'stone_brick','water','stone_brick','water','stone_brick',null],
+                    ['smooth_stone','smooth_stone','water','water','water','smooth_stone','smooth_stone'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
                 ]
             },
         ]
@@ -263,7 +441,7 @@ const CITY_LAYERS = [
                 id: 'kasteel',
                 name: 'Kasteel',
                 icon: '🏰',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'goud',
                 grid: [
                     ['stone_brick',null,null,null,'flag_red',null,null,null,'stone_brick'],
@@ -280,7 +458,7 @@ const CITY_LAYERS = [
                 id: 'nether_portaal',
                 name: 'Nether Portaal',
                 icon: '🟣',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'goud',
                 grid: [
                     [null,null,'obsidian','obsidian','obsidian','obsidian',null,null],
@@ -297,7 +475,7 @@ const CITY_LAYERS = [
                 id: 'tovenaarstoren',
                 name: 'Tovenaarstoren',
                 icon: '🧙',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'goud',
                 grid: [
                     [null,null,'diamond_block',null,null],
@@ -310,6 +488,71 @@ const CITY_LAYERS = [
                     [null,'stone_brick','door','stone_brick',null],
                     [null,'gold_block','gold_block','gold_block',null],
                     ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'troonzaal',
+                name: 'Troonzaal',
+                icon: '👑',
+                blocksNeeded: 20,
+                material: 'goud',
+                grid: [
+                    [null,null,null,null,'gold_block',null,null,null,null],
+                    [null,null,null,'gold_block','emerald','gold_block',null,null,null],
+                    [null,'roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red',null],
+                    ['roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red','roof_red'],
+                    ['stone_brick','glass','glass','stone_brick','gold_block','stone_brick','glass','glass','stone_brick'],
+                    ['stone_brick','glass','glass','stone_brick','gold_block','stone_brick','glass','glass','stone_brick'],
+                    ['stone_brick','stone_brick','stone_brick','door_iron','door_iron','stone_brick','stone_brick','stone_brick','stone_brick'],
+                    ['gold_block','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','gold_block'],
+                ]
+            },
+            {
+                id: 'wapenarsenaal',
+                name: 'Wapenarsenaal',
+                icon: '⚔️',
+                blocksNeeded: 20,
+                material: 'goud',
+                grid: [
+                    [null,'roof_stone','roof_stone','roof_stone','roof_stone','roof_stone',null],
+                    ['roof_stone','roof_stone','roof_stone','roof_stone','roof_stone','roof_stone','roof_stone'],
+                    ['stone_brick','stone_brick','iron_block','stone_brick','iron_block','stone_brick','stone_brick'],
+                    ['stone_brick','stone_brick','iron_block','stone_brick','iron_block','stone_brick','stone_brick'],
+                    ['stone_brick','stone_brick','stone_brick','door_iron','stone_brick','stone_brick','stone_brick'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'kerker',
+                name: 'Kerker',
+                icon: '⛓️',
+                blocksNeeded: 20,
+                material: 'goud',
+                grid: [
+                    ['stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d'],
+                    ['stone_brick_d','iron_block','stone_brick_d','stone_brick_d','stone_brick_d','iron_block','stone_brick_d'],
+                    ['stone_brick_d',null,'stone_brick_d','lantern','stone_brick_d',null,'stone_brick_d'],
+                    ['stone_brick_d',null,'stone_brick_d',null,'stone_brick_d',null,'stone_brick_d'],
+                    ['stone_brick_d','door_iron','stone_brick_d',null,'stone_brick_d','door_iron','stone_brick_d'],
+                    ['cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone','cobblestone'],
+                ]
+            },
+            {
+                id: 'vuurwachttoren',
+                name: 'Vuurwachttoren',
+                icon: '🔥',
+                blocksNeeded: 20,
+                material: 'goud',
+                grid: [
+                    [null,null,'lava_bright',null,null],
+                    [null,'lava','lava_bright','lava',null],
+                    ['stone_brick','lava','lava','lava','stone_brick'],
+                    ['stone_brick_d','stone_brick','stone_brick','stone_brick','stone_brick_d'],
+                    [null,'stone_brick','glass','stone_brick',null],
+                    [null,'stone_brick','glass','stone_brick',null],
+                    [null,'stone_brick','glass','stone_brick',null],
+                    [null,'stone_brick','door','stone_brick',null],
+                    ['nether_brick','nether_brick','nether_brick','nether_brick','nether_brick'],
                 ]
             },
         ]
@@ -325,7 +568,7 @@ const CITY_LAYERS = [
                 id: 'end_toren',
                 name: 'End Toren',
                 icon: '🗽',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'diamant',
                 grid: [
                     [null,null,'beacon_light',null,null],
@@ -345,7 +588,7 @@ const CITY_LAYERS = [
                 id: 'drakentroon',
                 name: 'Drakentroon',
                 icon: '🐉',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'diamant',
                 grid: [
                     [null,null,null,'glowstone',null,null,null],
@@ -361,7 +604,7 @@ const CITY_LAYERS = [
                 id: 'beacon',
                 name: 'Beacon',
                 icon: '💎',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'diamant',
                 grid: [
                     [null,null,'beacon_light',null,null],
@@ -372,6 +615,69 @@ const CITY_LAYERS = [
                     ['iron_block','iron_block','iron_block','iron_block','iron_block'],
                     [null,'gold_block','diamond_block','gold_block',null],
                     ['iron_block','iron_block','iron_block','iron_block','iron_block'],
+                ]
+            },
+            {
+                id: 'kristalgrot',
+                name: 'Kristalgrot',
+                icon: '💎',
+                blocksNeeded: 20,
+                material: 'diamant',
+                grid: [
+                    [null,'stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d',null],
+                    ['stone_brick_d','diamond_block',null,'emerald',null,'diamond_block','stone_brick_d'],
+                    ['stone_brick_d',null,'diamond_block',null,'diamond_block',null,'stone_brick_d'],
+                    ['stone_brick_d','emerald',null,'glowstone',null,'emerald','stone_brick_d'],
+                    ['stone_brick_d','stone_brick_d','diamond_block',null,'diamond_block','stone_brick_d','stone_brick_d'],
+                    ['end_stone_d','end_stone_d','end_stone_d','end_stone_d','end_stone_d','end_stone_d','end_stone_d'],
+                ]
+            },
+            {
+                id: 'hemelpoort',
+                name: 'Hemelpoort',
+                icon: '🌀',
+                blocksNeeded: 20,
+                material: 'diamant',
+                grid: [
+                    [null,null,'beacon_light',null,null],
+                    [null,'purpur','beacon_light','purpur',null],
+                    ['purpur','beacon_light','beacon_light','beacon_light','purpur'],
+                    ['purpur','beacon_light',null,'beacon_light','purpur'],
+                    ['purpur','beacon_light',null,'beacon_light','purpur'],
+                    ['purpur','beacon_light','beacon_light','beacon_light','purpur'],
+                    [null,'end_stone','end_stone','end_stone',null],
+                    ['end_stone_d','end_stone_d','end_stone_d','end_stone_d','end_stone_d'],
+                ]
+            },
+            {
+                id: 'drakennest',
+                name: 'Drakennest',
+                icon: '🥚',
+                blocksNeeded: 20,
+                material: 'diamant',
+                grid: [
+                    [null,null,null,'glowstone',null,null,null],
+                    [null,null,'obsidian','emerald','obsidian',null,null],
+                    [null,'obsidian','gold_block','gold_block','gold_block','obsidian',null],
+                    ['obsidian','gold_block','gold_block','diamond_block','gold_block','gold_block','obsidian'],
+                    [null,'obsidian','obsidian','obsidian','obsidian','obsidian',null],
+                    ['end_stone','end_stone','end_stone','end_stone','end_stone','end_stone','end_stone'],
+                ]
+            },
+            {
+                id: 'ender_altaar',
+                name: 'Ender Altaar',
+                icon: '🔮',
+                blocksNeeded: 20,
+                material: 'diamant',
+                grid: [
+                    [null,null,'glowstone',null,null],
+                    [null,'purpur','beacon_light','purpur',null],
+                    [null,'purpur','emerald','purpur',null],
+                    ['purpur_d','purpur','purpur','purpur','purpur_d'],
+                    [null,'end_stone','glowstone','end_stone',null],
+                    ['end_stone','end_stone','end_stone','end_stone','end_stone'],
+                    ['end_stone_d','end_stone_d','end_stone_d','end_stone_d','end_stone_d'],
                 ]
             },
         ]
@@ -426,25 +732,25 @@ function isLayerAccessible(layerIndex, player, layerStatuses) {
 }
 
 /* ===== Wijk Status ===== */
-/* A wijk unlocks when ALL 3 buildings in the previous wijk are completed */
+/* A wijk unlocks when ALL buildings in the previous wijk are completed */
 function getLayerStatus(layerIndex, playerDataMap) {
     const layer = CITY_LAYERS[layerIndex];
     if (!layer) return { unlocked: false, complete: false, claims: {} };
 
+    const BUILDINGS_NEEDED_TO_UNLOCK = 3;
+
     let unlocked = layerIndex === 0;
     if (layerIndex > 0) {
-        // Previous wijk must be fully complete (all 3 buildings by all 3 players)
         const prevLayer = CITY_LAYERS[layerIndex - 1];
-        const allPrevDone = prevLayer.buildings.every(b => {
-            // Each building must be completed by some player
+        let completedCount = 0;
+        for (const b of prevLayer.buildings) {
             for (const pd of Object.values(playerDataMap)) {
                 if (!pd?.world?.buildings) continue;
                 const bld = pd.world.buildings.find(x => x.projectId === b.id);
-                if (bld && bld.completed) return true;
+                if (bld && bld.completed) { completedCount++; break; }
             }
-            return false;
-        });
-        unlocked = allPrevDone;
+        }
+        unlocked = completedCount >= BUILDINGS_NEEDED_TO_UNLOCK;
     }
 
     // Build claims map — each building can have multiple players
@@ -465,7 +771,11 @@ function getLayerStatus(layerIndex, playerDataMap) {
         }
     }
 
-    const complete = layer.buildings.every(b => claims[b.id] && claims[b.id].some(c => c.completed));
+    let doneCount = 0;
+    for (const b of layer.buildings) {
+        if (claims[b.id] && claims[b.id].some(c => c.completed)) doneCount++;
+    }
+    const complete = doneCount >= layer.buildings.length;
     return { unlocked, complete, claims };
 }
 
