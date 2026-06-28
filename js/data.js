@@ -26,16 +26,32 @@ const RESOURCES = {
 };
 
 const CRAFT_RECIPES = [
-    { id: 'houten_zwaard', name: 'Houten Zwaard', icon: '🗡️', cost: { hout: 10 }, xp: 20 },
-    { id: 'stenen_pickaxe', name: 'Stenen Houweel', icon: '⛏️', cost: { steen: 10 }, xp: 40 },
-    { id: 'ijzeren_harnas', name: 'IJzeren Harnas', icon: '🛡️', cost: { ijzer: 8 }, xp: 60 },
-    { id: 'gouden_helm', name: 'Gouden Helm', icon: '👑', cost: { goud: 5 }, xp: 80 },
-    { id: 'diamanten_zwaard', name: 'Diamanten Zwaard', icon: '⚔️', cost: { diamant: 3 }, xp: 150 },
-    { id: 'enchanted_boog', name: 'Betoverde Boog', icon: '🏹', cost: { hout: 20, ijzer: 5 }, xp: 100 },
-    { id: 'toorts', name: 'Toorts', icon: '🔥', cost: { hout: 5 }, xp: 10 },
-    { id: 'bed', name: 'Bed', icon: '🛏️', cost: { hout: 15 }, xp: 30 },
-    { id: 'aambeeld', name: 'Aambeeld', icon: '🔨', cost: { ijzer: 15 }, xp: 120 },
-    { id: 'beacon', name: 'Beacon', icon: '🌟', cost: { diamant: 5, goud: 10, ijzer: 10 }, xp: 500 }
+    // === HOUT TIER (Basis Kamp) ===
+    { id: 'werkbank',        name: 'Werkbank',         icon: '🟫', cost: { hout: 4 },                  xp: 10,  tier: 0, effect: 'Ontgrendelt houten recepten',     unlock: true },
+    { id: 'houten_zwaard',   name: 'Houten Zwaard',    icon: '🗡️', cost: { hout: 6 },                  xp: 15,  tier: 0, effect: '+1 woord minder per regel',       bonus: { wordsDiscount: 1 } },
+    { id: 'houten_pickaxe',  name: 'Houten Houweel',   icon: '⛏️', cost: { hout: 8 },                  xp: 20,  tier: 0, effect: '+2 hout per sessie',              bonus: { sessionResource: 'hout', amount: 2 } },
+    { id: 'toorts',          name: 'Toortsen (4x)',    icon: '🔥', cost: { hout: 3 },                  xp: 5,   tier: 0, effect: 'Verlicht je gebouwen',             repeatable: true },
+    { id: 'bed',             name: 'Bed',              icon: '🛏️', cost: { hout: 12 },                 xp: 25,  tier: 0, effect: 'Dagelijkse login: +3 hout',       bonus: { dailyResource: 'hout', dailyAmount: 3 } },
+    // === STEEN TIER (Dorp) ===
+    { id: 'oven',            name: 'Oven',             icon: '🧱', cost: { steen: 8 },                 xp: 30,  tier: 1, effect: 'Ontgrendelt stenen recepten',      unlock: true },
+    { id: 'stenen_zwaard',   name: 'Stenen Zwaard',    icon: '🗡️', cost: { steen: 6, hout: 4 },        xp: 35,  tier: 1, effect: '+2 woorden minder per regel',     bonus: { wordsDiscount: 2 } },
+    { id: 'stenen_pickaxe',  name: 'Stenen Houweel',   icon: '⛏️', cost: { steen: 8, hout: 4 },        xp: 40,  tier: 1, effect: '+2 steen per sessie',             bonus: { sessionResource: 'steen', amount: 2 } },
+    { id: 'schild',          name: 'Schild',           icon: '🛡️', cost: { hout: 10, steen: 4 },       xp: 45,  tier: 1, effect: '1 typfout vergeven per regel',     bonus: { errorForgive: 1 } },
+    // === IJZER TIER (Stad) ===
+    { id: 'ijzeren_zwaard',  name: 'IJzeren Zwaard',   icon: '🗡️', cost: { ijzer: 6, hout: 4 },        xp: 60,  tier: 2, effect: '+3 woorden minder per regel',     bonus: { wordsDiscount: 3 } },
+    { id: 'ijzeren_pickaxe', name: 'IJzeren Houweel',  icon: '⛏️', cost: { ijzer: 8, hout: 4 },        xp: 70,  tier: 2, effect: '+3 ijzer per sessie',             bonus: { sessionResource: 'ijzer', amount: 3 } },
+    { id: 'ijzeren_harnas',  name: 'IJzeren Harnas',   icon: '👕', cost: { ijzer: 12 },                xp: 80,  tier: 2, effect: '2 typfouten vergeven per regel',   bonus: { errorForgive: 2 } },
+    { id: 'aambeeld',        name: 'Aambeeld',         icon: '🔨', cost: { ijzer: 15 },                xp: 90,  tier: 2, effect: 'Dagelijkse login: +2 ijzer',       bonus: { dailyResource: 'ijzer', dailyAmount: 2 } },
+    // === GOUD TIER (Vesting) ===
+    { id: 'gouden_zwaard',   name: 'Gouden Zwaard',    icon: '🗡️', cost: { goud: 6, hout: 4 },         xp: 100, tier: 3, effect: 'Extra blok per sessie (4 i.p.v. 3)', bonus: { extraBlock: 1 } },
+    { id: 'gouden_pickaxe',  name: 'Gouden Houweel',   icon: '⛏️', cost: { goud: 8, hout: 4 },         xp: 110, tier: 3, effect: '+3 goud per sessie',             bonus: { sessionResource: 'goud', amount: 3 } },
+    { id: 'gouden_helm',     name: 'Gouden Helm',      icon: '👑', cost: { goud: 10 },                 xp: 120, tier: 3, effect: 'Dagelijkse login: +2 goud',       bonus: { dailyResource: 'goud', dailyAmount: 2 } },
+    { id: 'enchanting_table',name: 'Betoveringstafel',  icon: '📖', cost: { goud: 8, diamant: 1 },      xp: 150, tier: 3, effect: 'Ontgrendelt betoveringen',        unlock: true },
+    // === DIAMANT TIER (Legende) ===
+    { id: 'diamanten_zwaard',name: 'Diamanten Zwaard',  icon: '⚔️', cost: { diamant: 4, hout: 4 },      xp: 200, tier: 4, effect: 'Extra blok per sessie (5 i.p.v. 3)', bonus: { extraBlock: 2 } },
+    { id: 'diamanten_pickaxe',name:'Diamanten Houweel', icon: '⛏️', cost: { diamant: 6, hout: 4 },      xp: 220, tier: 4, effect: '+5 diamant per sessie',          bonus: { sessionResource: 'diamant', amount: 5 } },
+    { id: 'diamanten_harnas',name: 'Diamanten Harnas',  icon: '💎', cost: { diamant: 10 },              xp: 250, tier: 4, effect: '3 typfouten vergeven per regel',   bonus: { errorForgive: 3 } },
+    { id: 'beacon_item',     name: 'Beacon',           icon: '🌟', cost: { diamant: 5, goud: 10, ijzer: 10 }, xp: 500, tier: 4, effect: 'Alle bonussen verdubbeld!',  bonus: { doubleAll: true } },
 ];
 
 const MOBS = [

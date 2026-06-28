@@ -9,14 +9,14 @@ const LESSON_SETS = [
                 title: 'Les 1: De Thuisrij - Links',
                 desc: 'Leer de linker thuisrij: A S D F',
                 keys: ['a', 's', 'd', 'f'],
-                words: ['as', 'af', 'das', 'ff', 'dd', 'ss', 'aa', 'fd', 'sa', 'df', 'as as', 'af af', 'das das', 'afs', 'daf', 'fas', 'fad'],
+                words: ['as', 'af', 'das', 'ff', 'dd', 'aa', 'fd', 'sa', 'df', 'as as', 'af af', 'das das', 'afs', 'daf', 'fas', 'fad'],
                 sentences: []
             },
             {
                 title: 'Les 2: De Thuisrij - Rechts',
                 desc: 'Leer de rechter thuisrij: J K L',
                 keys: ['j', 'k', 'l'],
-                words: ['jjj', 'kkk', 'lll', 'jkl', 'lkj', 'jlk', 'kjl', 'jk jk', 'kl kl', 'jl jl', 'lk lk', 'jkl jkl', 'lkj lkj'],
+                words: ['ja', 'al', 'jak', 'lak', 'kal', 'jal', 'la', 'aj', 'ak', 'ja ja', 'al al', 'lak lak', 'jak jak'],
                 sentences: []
             },
             {

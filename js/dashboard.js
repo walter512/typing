@@ -22,115 +22,62 @@ async function renderParentDashboard(tab) {
 async function renderOverview() {
     const players = await getAllPlayers();
     const allSessions = await getAllSessions();
-    const today = getToday();
-
-    // This week's sessions
-    const weekSessions = allSessions.filter(s => daysBetween(s.date, today) <= 7);
-    const todaySessions = allSessions.filter(s => s.date === today);
-
-    // Family streak check
-    const familyStreak = players.length === 3 && players.every(p => p.lastPracticeDate === today);
-
-    let html = '<div class="dashboard-cards">';
-
-    // Summary cards
-    html += `
-        <div class="dash-card">
-            <h3>Vandaag Geoefend</h3>
-            <div class="big-number">${todaySessions.length}</div>
-            <div class="trend">${familyStreak ? '👨‍👧‍👦 Alle 3 vandaag geoefend!' : 'Nog niet iedereen vandaag'}</div>
-        </div>
-        <div class="dash-card">
-            <h3>Sessies Deze Week</h3>
-            <div class="big-number">${weekSessions.length}</div>
-        </div>
-    `;
-
-    // Per player summary
-    for (const player of players) {
-        const sessions = await getPlayerSessions(player.id);
-        const recent = sessions.slice(-5);
-        const avgWpm = recent.length > 0
-            ? Math.round(recent.reduce((s, r) => s + r.wpm, 0) / recent.length)
-            : 0;
-        const avgAcc = recent.length > 0
-            ? Math.round(recent.reduce((s, r) => s + r.accuracy, 0) / recent.length)
-            : 0;
-
-        const biome = BIOMES[player.currentBiome] || BIOMES[0];
-        const practicedToday = player.lastPracticeDate === today;
-
-        html += `
-            <div class="dash-card">
-                <h3>${player.name} (${player.age} jaar)</h3>
-                <div class="big-number">${avgWpm} <span style="font-size:14px">WPM</span></div>
-                <div class="trend ${avgAcc >= 85 ? 'up' : 'down'}">
-                    Nauwkeurigheid: ${avgAcc}% | Streak: ${player.streak} dagen
-                </div>
-                <div style="font-size:11px; margin-top:8px; color: var(--text-secondary)">
-                    Biome: ${biome.name} | Level ${player.level} |
-                    ${practicedToday ? '✅ Vandaag geoefend' : '❌ Nog niet geoefend'}
-                </div>
-            </div>
-        `;
-    }
-
-    html += '</div>';
-
-    // Monthly overview: simple input/output per child
-    html += '<div class="dash-card" style="margin-top:16px"><h3>Maandoverzicht</h3>';
-    html += await renderMonthOverview(players, allSessions);
-    html += '</div>';
-
-    return html;
-}
-
-async function renderMonthOverview(players, sessions) {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
     const monthNames = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
-    const monthStart = `${year}-${String(month+1).padStart(2,'0')}-01`;
 
-    let html = `<div style="font-size:12px; color:var(--gold); margin-bottom:16px">${monthNames[month]} ${year}</div>`;
+    // Find all months that have sessions, plus current month
+    const monthsSet = new Set();
+    const now = new Date();
+    monthsSet.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+    for (const s of allSessions) {
+        if (s.date) monthsSet.add(s.date.substring(0, 7));
+    }
+    const months = [...monthsSet].sort().reverse(); // newest first
 
-    html += '<div class="month-overview-table">';
+    let html = '';
 
-    // Header
-    html += `<div class="mo-row mo-header">
-        <div class="mo-cell mo-name">Speler</div>
-        <div class="mo-cell">Minuten</div>
-        <div class="mo-cell">Sessies</div>
-        <div class="mo-cell">Voortgang</div>
-    </div>`;
+    for (const monthKey of months) {
+        const [year, monthNum] = monthKey.split('-').map(Number);
+        const monthStart = `${monthKey}-01`;
+        const nextMonth = monthNum === 12 ? `${year + 1}-01-01` : `${year}-${String(monthNum + 1).padStart(2, '0')}-01`;
 
-    for (const player of players) {
-        const playerSessions = sessions.filter(s => s.playerId === player.id && s.date >= monthStart);
-        const totalMinutes = Math.round(playerSessions.reduce((sum, s) => sum + (s.duration || s.minutes || 0), 0));
-        const sessionCount = playerSessions.length;
+        html += `<div class="dash-card" style="margin-bottom:16px">`;
+        html += `<h3>${monthNames[monthNum - 1]} ${year}</h3>`;
+        html += '<div class="month-overview-table">';
 
-        // Calculate goal percentage: target WPM for blind typing
-        const targetWpm = player.age <= 8 ? 30 : player.age <= 11 ? 45 : 60;
-        const goalPct = Math.min(100, Math.round((player.bestWpm / targetWpm) * 100));
-
-        // Color based on progress
-        const goalColor = goalPct >= 75 ? 'var(--green)' : goalPct >= 40 ? 'var(--gold)' : 'var(--red)';
-        const minuteColor = totalMinutes >= 120 ? 'var(--green)' : totalMinutes >= 60 ? 'var(--gold)' : 'var(--text-secondary)';
-
-        html += `<div class="mo-row">
-            <div class="mo-cell mo-name">${player.name}</div>
-            <div class="mo-cell" style="color:${minuteColor}">${totalMinutes} min</div>
-            <div class="mo-cell">${sessionCount}x</div>
-            <div class="mo-cell">
-                <div class="mo-goal-bar">
-                    <div class="mo-goal-fill" style="width:${goalPct}%; background:${goalColor}"></div>
-                </div>
-                <span style="color:${goalColor}; font-size:11px">${goalPct}%</span>
-            </div>
+        // Header
+        html += `<div class="mo-row mo-header">
+            <div class="mo-cell mo-name">Speler</div>
+            <div class="mo-cell">Minuten</div>
+            <div class="mo-cell">Sessies</div>
+            <div class="mo-cell">WPM</div>
+            <div class="mo-cell">Nauwk.</div>
         </div>`;
+
+        for (const player of players) {
+            const monthSessions = allSessions.filter(s =>
+                s.playerId === player.id && s.date >= monthStart && s.date < nextMonth
+            );
+            const totalMinutes = Math.round(monthSessions.reduce((sum, s) => sum + (s.duration || 0), 0));
+            const sessionCount = monthSessions.length;
+            const avgWpm = sessionCount > 0
+                ? Math.round(monthSessions.reduce((sum, s) => sum + s.wpm, 0) / sessionCount)
+                : '-';
+            const avgAcc = sessionCount > 0
+                ? Math.round(monthSessions.reduce((sum, s) => sum + s.accuracy, 0) / sessionCount) + '%'
+                : '-';
+
+            html += `<div class="mo-row">
+                <div class="mo-cell mo-name">${player.name}</div>
+                <div class="mo-cell">${totalMinutes} min</div>
+                <div class="mo-cell">${sessionCount}x</div>
+                <div class="mo-cell">${avgWpm}</div>
+                <div class="mo-cell">${avgAcc}</div>
+            </div>`;
+        }
+
+        html += '</div></div>';
     }
 
-    html += '</div>';
     return html;
 }
 

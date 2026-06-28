@@ -7,6 +7,7 @@ let currentMob = null;
 let currentProject = null;
 let wordCount = 0;
 let activeRandomEvent = null;
+let sessionBlocksPlaced = 0;
 
 /* ===== Screen Navigation ===== */
 
@@ -235,8 +236,7 @@ function closeDailyReward() {
 
 /* ===== Build Menu ===== */
 
-async function openBuildMenu() {
-    // If there's an active project, start building instead of showing menu
+function startBuildOrChoose() {
     if (currentPlayer && currentPlayer.world.activeProject) {
         const building = currentPlayer.world.buildings.find(b => b.projectId === currentPlayer.world.activeProject);
         if (building && !building.completed) {
@@ -244,6 +244,10 @@ async function openBuildMenu() {
             return;
         }
     }
+    openBuildMenu();
+}
+
+async function openBuildMenu() {
 
     const popup = document.getElementById('build-menu-popup');
     popup.style.display = 'flex';
@@ -330,6 +334,80 @@ async function continueBuild() {
     return startBuildSession();
 }
 
+/* ===== Finger Position Instruction ===== */
+
+let lastShownBiome = -1;
+
+const FINGER_HINTS = [
+    { biome: 0, title: 'Thuisrij: A S D F — J K L', hint: 'Leg je vingers op de thuisrij. Je wijsvingers voelen de bultjes op F en J.', keys: ['a','s','d','f','j','k','l'] },
+    { biome: 1, title: 'Bovenste Rij: Q W E R T — Y U I O P', hint: 'Strek je vingers omhoog naar de bovenste rij. Keer steeds terug naar de thuisrij!', keys: ['q','w','e','r','t','y','u','i','o','p'] },
+    { biome: 2, title: 'Onderste Rij: Z X C V B — N M', hint: 'Buig je vingers omlaag. Elke vinger bedient één toets op de onderste rij.', keys: ['z','x','c','v','b','n','m'] },
+    { biome: 3, title: 'Hoofdletters & Leestekens', hint: 'Gebruik Shift met je pink. De andere hand typt de letter.', keys: [',','.','/'] },
+    { biome: 4, title: 'Cijfers', hint: 'De cijfers staan boven de bovenste rij. Strek je vingers helemaal uit!', keys: ['1','2','3','4','5','6','7','8','9','0'] },
+];
+
+function showFingerInstruction(biome, callback) {
+    if (biome === lastShownBiome) { callback(); return; }
+    lastShownBiome = biome;
+
+    const info = FINGER_HINTS.find(f => f.biome === biome);
+    if (!info) { callback(); return; }
+
+    document.getElementById('fingers-title').textContent = info.title;
+    document.getElementById('fingers-hint').textContent = info.hint + '\n\nLeg je vingers op de thuisrij en druk F + J tegelijk in om te beginnen!';
+
+    // Render keyboard diagram with highlighted keys
+    const diagram = document.getElementById('fingers-diagram');
+    const homeKeys = ['a','s','d','f','j','k','l'];
+    let html = '';
+    const rows = [
+        ['q','w','e','r','t','y','u','i','o','p'],
+        ['a','s','d','f','g','h','j','k','l'],
+        ['z','x','c','v','b','n','m']
+    ];
+    for (const row of rows) {
+        html += '<div class="keyboard-row">';
+        for (const key of row) {
+            const isNew = info.keys.includes(key);
+            const isHome = homeKeys.includes(key);
+            const isFJ = key === 'f' || key === 'j';
+            html += `<div class="fkey ${isNew ? 'highlight' : isHome ? 'home' : ''} ${isFJ ? 'fj-key' : ''}">${key}${isFJ ? ' ▸' : ''}</div>`;
+        }
+        html += '</div>';
+    }
+    diagram.innerHTML = html;
+
+    window._fingerCallback = callback;
+    window._fjState = { f: false, j: false };
+
+    // Listen for F+J simultaneous press
+    window._fjHandler = (e) => {
+        if (!document.getElementById('screen-fingers').classList.contains('active')) return;
+        if (e.key === 'f') window._fjState.f = true;
+        if (e.key === 'j') window._fjState.j = true;
+        if (window._fjState.f && window._fjState.j) {
+            dismissFingers();
+        }
+    };
+    window._fjUpHandler = (e) => {
+        if (e.key === 'f') window._fjState.f = false;
+        if (e.key === 'j') window._fjState.j = false;
+    };
+    document.addEventListener('keydown', window._fjHandler);
+    document.addEventListener('keyup', window._fjUpHandler);
+
+    showScreen('screen-fingers');
+}
+
+function dismissFingers() {
+    document.removeEventListener('keydown', window._fjHandler);
+    document.removeEventListener('keyup', window._fjUpHandler);
+    if (window._fingerCallback) {
+        window._fingerCallback();
+        window._fingerCallback = null;
+    }
+}
+
 async function startBuildSession() {
     if (!currentPlayer) return;
 
@@ -349,23 +427,30 @@ async function startBuildSession() {
         return;
     }
 
+    // Show finger position instruction for new biome
+    showFingerInstruction(project.biome, () => doStartBuild(project));
+}
+
+async function doStartBuild(project) {
+    let building = currentPlayer.world.buildings.find(b => b.projectId === project.id);
+
     // Create building entry if it doesn't exist
     if (!building) {
-        building = { projectId, blocksPlaced: 0, completed: false };
+        building = { projectId: project.id, blocksPlaced: 0, completed: false };
         currentPlayer.world.buildings.push(building);
         await savePlayer(currentPlayer);
     }
 
     currentProject = project;
+    wordCount = 0;
+    sessionBlocksPlaced = 0;
+    activeRandomEvent = null;
 
-    // Generate text from the right biome — 2x remaining blocks so building finishes halfway
-    const blocksRemaining = project.blocksNeeded - (building.blocksPlaced || 0);
-    const text = generateBuildingText(project, currentPlayer.age, blocksRemaining);
+    // Generate 3 lines of text (1 block per line)
+    const text = generateRoundText(project, currentPlayer.age, currentPlayer);
     if (!text) return;
 
     createEngine(text);
-    wordCount = 0;
-    activeRandomEvent = null;
 
     // Setup UI
     document.getElementById('lesson-title').textContent = project.name;
@@ -374,12 +459,13 @@ async function startBuildSession() {
     biomeBadge.textContent = biome.name;
     biomeBadge.className = `biome-badge ${biome.id}`;
 
-    // Build visualization — show full grid with contours
+    // Build visualization
     document.getElementById('build-icon').textContent = project.icon;
     const buildPct = building ? Math.round((building.blocksPlaced / project.blocksNeeded) * 100) : 0;
     document.getElementById('build-progress-fill').style.width = buildPct + '%';
     const remaining = Math.max(0, project.blocksNeeded - (building.blocksPlaced || 0));
     document.getElementById('build-pct').textContent = remaining > 0 ? `${buildPct}% — nog ${remaining}` : '100% ✓';
+    updateRoundDisplay();
     initBuildGrid(project, building ? building.blocksPlaced : 0);
 
     renderTextDisplay(text);
@@ -402,6 +488,11 @@ async function startBuildSession() {
     if (text.length > 0) highlightKey(text[0]);
 
     startLessonUpdates();
+}
+
+function updateRoundDisplay() {
+    const el = document.getElementById('live-round');
+    if (el) el.textContent = `⛏ ${sessionBlocksPlaced}/${LINES_PER_SESSION}`;
 }
 
 // Keep old startLesson as alias
@@ -524,7 +615,7 @@ function addBuildBlock(color) {
     if (!currentProject) return;
     const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject.id);
     if (building) {
-        animateNewBlock(currentProject.id, building.blocksPlaced, currentProject.blocksNeeded);
+        animateNewBlock(currentProject.id, building.blocksPlaced, currentProject.blocksNeeded, sessionBlocksPlaced);
     }
 }
 
@@ -602,14 +693,64 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add floating Minecraft items to profile screen
     addFloatingItems();
 
-    // Load saved levels on profile cards
-    loadProfileLevels();
-
     const input = document.getElementById('typing-input');
 
     document.addEventListener('click', () => {
         if (document.getElementById('screen-lesson').classList.contains('active')) {
             input.focus();
+        }
+    });
+
+    // ===== Global Keyboard Navigation =====
+    document.addEventListener('keydown', (e) => {
+        const activeScreen = document.querySelector('.screen.active');
+        if (!activeScreen) return;
+        const screenId = activeScreen.id;
+
+        // Profile screen: 1/2/3 to pick player
+        if (screenId === 'screen-profiles') {
+            if (e.key === '1') { selectProfile('sebas'); e.preventDefault(); return; }
+            if (e.key === '2') { selectProfile('jonathan'); e.preventDefault(); return; }
+            if (e.key === '3') { selectProfile('benjamin'); e.preventDefault(); return; }
+        }
+
+        // World screen: Enter/Space to build, Escape to switch player
+        if (screenId === 'screen-world') {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startBuildOrChoose(); return; }
+            if (e.key === 'Escape') { showScreen('screen-profiles'); return; }
+            if (e.key === 'i' || e.key === 'I') { showInventory(); return; }
+        }
+
+        // Results screen: Enter/Space to continue
+        if (screenId === 'screen-results') {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                // Click the primary button
+                const btn = document.querySelector('#results-buttons .btn-primary');
+                if (btn) btn.click();
+                return;
+            }
+        }
+
+        // Inventory: Escape to go back
+        if (screenId === 'screen-inventory') {
+            if (e.key === 'Escape') { showScreen('screen-world'); return; }
+        }
+
+        // Family board: Escape to go back
+        if (screenId === 'screen-family') {
+            if (e.key === 'Escape') { showScreen('screen-world'); return; }
+        }
+
+        // Build menu popup: 1-9 to pick, Escape to close
+        const buildMenu = document.getElementById('build-menu-popup');
+        if (buildMenu && buildMenu.style.display !== 'none') {
+            if (e.key === 'Escape') { closeBuildMenu(); e.preventDefault(); return; }
+            const num = parseInt(e.key);
+            if (num >= 1 && num <= 9) {
+                const cards = buildMenu.querySelectorAll('.build-project-card:not(.completed):not(.locked)');
+                if (cards[num - 1]) { cards[num - 1].click(); e.preventDefault(); return; }
+            }
         }
     });
 
@@ -635,28 +776,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (!result.isComplete) highlightKey(engineState.chars[engineState.pos]);
 
-                    // Word complete — earn 1 resource per 8 words typed
+                    // Word complete
                     if (result.typed === ' ' || result.isComplete) {
                         soundWordComplete();
                         wordCount++;
 
-                        if (currentProject) {
-                            // 1 resource per WORDS_PER_RESOURCE words
-                            if (wordCount % WORDS_PER_RESOURCE === 0) {
-                                const blockResult = placeBlock(currentPlayer);
-                                if (blockResult && blockResult.placed) {
-                                    addBuildBlock(currentProject.color);
-                                    updateBuildProgress();
-                                    // Show resource earned toast
-                                    const resInfo = RESOURCES[currentProject.material];
-                                    if (resInfo) showToast(`${resInfo.icon} +1 ${currentProject.material}!`);
-                                    soundResourceEarned();
-                                    if (blockResult.completed) {
-                                        soundLevelUp();
-                                        finishLesson();
-                                        return;
-                                    }
-                                }
+                        // End of a line (every 12 words) — place 1 block
+                        if (wordCount > 0 && wordCount % WORDS_PER_LINE === 0 && sessionBlocksPlaced < LINES_PER_SESSION) {
+                            placeBlockInline();
+
+                            // All 3 blocks done — session complete
+                            if (sessionBlocksPlaced >= LINES_PER_SESSION) {
+                                handleRoundComplete();
+                                return;
                             }
                         }
 
@@ -677,12 +809,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Particles
                     if (Math.random() < 0.25) {
-                        const stats = getEngineStats();
-                        const resource = Object.keys(stats.resourcesEarned).pop() || 'hout';
                         spawnBlockParticle(
                             window.innerWidth / 2 + (Math.random() - 0.5) * 200,
                             window.innerHeight / 2,
-                            resource
+                            currentProject?.material || 'hout'
                         );
                         if (Math.random() < 0.3) soundBlockMine();
                     }
@@ -697,9 +827,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     flashKeyError(result.expected);
                 }
 
-                // Auto-continue: when text is done, generate more!
-                if (result.isComplete) {
-                    handleTextComplete();
+                // Fallback: if text runs out before all blocks placed
+                if (result.isComplete && sessionBlocksPlaced < LINES_PER_SESSION) {
+                    while (sessionBlocksPlaced < LINES_PER_SESSION) {
+                        placeBlockInline();
+                    }
+                    handleRoundComplete();
                 }
             }
         }
@@ -708,45 +841,108 @@ document.addEventListener('DOMContentLoaded', () => {
     initApp();
 });
 
-/* ===== Auto-Continue: No Natural Stopping Point ===== */
+/* ===== Place 1 block mid-typing (after each line of 12 words) ===== */
 
-async function handleTextComplete() {
-    const stats = getEngineStats();
-
-    // Save progress
-    await saveSessionData(stats);
-
-    // Check if building is complete
-    const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject?.id);
-    if (building && building.completed) {
-        // Building finished! Show results and pick a new project
-        finishLesson();
-        return;
+function placeBlockInline() {
+    if (!currentProject) return;
+    const blockResult = placeBlock(currentPlayer);
+    if (blockResult && blockResult.placed) {
+        sessionBlocksPlaced++;
+        soundBlockPlace();
+        addBuildBlock(currentProject.color);
+        updateBuildProgress();
+        updateRoundDisplay();
+        savePlayer(currentPlayer);
     }
+}
 
-    // Generate MORE text and keep going!
-    const remaining = currentProject.blocksNeeded - (building ? building.blocksPlaced : 0);
-    const newText = generateBuildingText(currentProject, currentPlayer.age, remaining);
-    createEngine(newText);
-    renderTextDisplay(newText);
-    wordCount = 0;
+/* ===== Session Complete: all 3 lines typed ===== */
 
-    if (newText.length > 0) highlightKey(newText[0]);
+async function handleRoundComplete() {
+    stopLessonUpdates();
+    const stats = getEngineStats();
+    await saveSessionData(stats);
+    resetEngine();
 
-    const input = document.getElementById('typing-input');
-    input.value = '';
-    input.focus();
+    const building = currentPlayer.world.buildings.find(b => b.projectId === currentProject?.id);
+    const remaining = currentProject ? currentProject.blocksNeeded - (building?.blocksPlaced || 0) : 0;
+    const pct = building ? Math.round((building.blocksPlaced / currentProject.blocksNeeded) * 100) : 0;
 
-    // Brief encouraging toast
+    if (building && building.completed) {
+        soundLevelUp();
+        const handicap = PLAYERS[currentPlayer.id]?.handicap || 1;
+        const xpGained = calculateXpGain(stats, handicap);
+        const newAchievements = await checkAchievements(currentPlayer.id, stats);
+        showResults(stats, xpGained, newAchievements, false);
+    } else {
+        soundRoundComplete();
+        showRoundCelebration(stats, building, remaining, pct, sessionBlocksPlaced);
+    }
+}
+
+function showRoundCelebration(stats, building, remaining, pct, blocksThisSession) {
+    const title = document.getElementById('results-title');
     const encouragements = [
-        '⛏ Goed bezig! Blijf bouwen!',
-        '🔥 Je gaat lekker!',
-        '💪 Doorgaan!',
-        `🏗️ Nog ${currentProject ? currentProject.blocksNeeded - (building?.blocksPlaced || 0) : '?'} blokken!`,
-        '⚡ Snelheidsbonus!',
+        '⛏ Goed gedaan!',
+        '🔥 Uitstekend!',
+        '💪 Sterk getypt!',
+        '⭐ Geweldig!',
         '🌟 Fantastisch!',
     ];
-    showToast(encouragements[Math.floor(Math.random() * encouragements.length)]);
+    title.textContent = encouragements[Math.floor(Math.random() * encouragements.length)];
+
+    document.getElementById('result-wpm').textContent = stats.wpm;
+    document.getElementById('result-accuracy').textContent = stats.accuracy + '%';
+
+    // Show building at same position as during typing — with highlighted new blocks
+    showResultsBuilding(building?.blocksPlaced || 0, blocksThisSession);
+
+    // Resources info
+    const resDiv = document.getElementById('results-resources');
+    resDiv.innerHTML = '';
+    if (currentProject) {
+        resDiv.innerHTML = `
+            <div style="font-size:14px; color:var(--gold);">+${blocksThisSession || 1} blokken geplaatst!</div>
+            <div style="font-size:10px; color:var(--text-secondary); margin-top:4px">
+                ${remaining > 0 ? `Nog ${remaining} blokken voor ${currentProject.name} (${pct}%)` : `${currentProject.name} is af!`}
+            </div>`;
+    }
+
+    // Clear other sections
+    document.getElementById('results-achievements').innerHTML = '';
+    document.getElementById('results-keys').innerHTML = '';
+
+    // Buttons — back to city
+    const btnDiv = document.getElementById('results-buttons');
+    if (btnDiv) {
+        btnDiv.innerHTML = `
+            <button class="btn-minecraft btn-primary" onclick="showScreen('screen-world')">🏘️ Terug naar de Stad</button>
+        `;
+    }
+
+    showScreen('screen-results');
+}
+
+function showResultsBuilding(blocksPlaced, highlightBlocks) {
+    const visual = document.getElementById('results-build-visual');
+    if (!visual || !currentProject) { if (visual) visual.style.display = 'none'; return; }
+
+    visual.style.display = '';
+    document.getElementById('results-build-icon').textContent = currentProject.icon;
+
+    const pct = Math.min(100, Math.round((blocksPlaced / currentProject.blocksNeeded) * 100));
+    const remaining = Math.max(0, currentProject.blocksNeeded - blocksPlaced);
+    document.getElementById('results-build-fill').style.width = pct + '%';
+    document.getElementById('results-build-pct').textContent = remaining > 0 ? `${pct}% — nog ${remaining}` : '100% ✓';
+
+    const structure = document.getElementById('results-build-structure');
+    for (const layer of CITY_LAYERS) {
+        const bDef = layer.buildings.find(b => b.id === currentProject.id);
+        if (bDef) {
+            structure.innerHTML = renderBuildingSprite(bDef, blocksPlaced, currentProject.blocksNeeded, 24, highlightBlocks);
+            break;
+        }
+    }
 }
 
 async function saveSessionData(stats) {
@@ -866,8 +1062,6 @@ function showResults(stats, xpGained, newAchievements, leveledUp) {
 
     document.getElementById('result-wpm').textContent = stats.wpm;
     document.getElementById('result-accuracy').textContent = stats.accuracy + '%';
-    document.getElementById('result-xp').textContent = '+' + xpGained;
-    document.getElementById('result-blocks').textContent = stats.blocksMined;
 
     const title = document.getElementById('results-title');
     if (currentProject) {
@@ -878,15 +1072,20 @@ function showResults(stats, xpGained, newAchievements, leveledUp) {
             const pct = building ? Math.round((building.blocksPlaced / currentProject.blocksNeeded) * 100) : 0;
             title.textContent = `⛏ ${currentProject.name} — ${pct}% af`;
         }
-    } else if (stats.accuracy === 100) {
-        title.textContent = '⭐ Perfect! ⭐';
-    } else if (stats.accuracy >= 90) {
-        title.textContent = 'Uitstekend!';
+        // Show building at same position with highlighted new blocks
+        const bld = currentPlayer.world.buildings.find(x => x.projectId === currentProject.id);
+        showResultsBuilding(bld?.blocksPlaced || 0, sessionBlocksPlaced);
     } else {
-        title.textContent = 'Goed Gedaan!';
+        if (stats.accuracy === 100) {
+            title.textContent = '⭐ Perfect! ⭐';
+        } else if (stats.accuracy >= 90) {
+            title.textContent = 'Uitstekend!';
+        } else {
+            title.textContent = 'Goed Gedaan!';
+        }
+        document.getElementById('results-build-visual').style.display = 'none';
     }
 
-    // Resources
     const resDiv = document.getElementById('results-resources');
     resDiv.innerHTML = '';
     for (const [res, count] of Object.entries(stats.resourcesEarned)) {
@@ -989,10 +1188,12 @@ function showInventory() {
     const grid = document.getElementById('inventory-grid');
     grid.innerHTML = '';
 
+    // Resources
     for (const [res, info] of Object.entries(RESOURCES)) {
         const count = currentPlayer.resources[res] || 0;
         grid.innerHTML += `<div class="inv-slot" title="${res}: ${count}">${count > 0 ? info.icon : ''}${count > 0 ? `<span class="count">${count}</span>` : ''}</div>`;
     }
+    // Owned items
     for (const item of currentPlayer.inventory) {
         grid.innerHTML += `<div class="inv-slot" title="${item.name}">${item.icon}</div>`;
     }
@@ -1003,19 +1204,201 @@ function showInventory() {
     }
 
     const craftSection = document.getElementById('crafting-section');
-    craftSection.innerHTML = '<h3 style="margin:20px 0 12px; font-size:14px">⚒️ Crafting</h3><div style="display:flex; flex-wrap:wrap; gap:8px">';
-    for (const recipe of CRAFT_RECIPES) {
-        const canMake = canCraft(recipe, currentPlayer.resources);
-        const costText = Object.entries(recipe.cost).map(([r, n]) => `${n} ${r}`).join(', ');
-        craftSection.innerHTML += `<div style="background:var(--bg-medium); border:2px solid ${canMake ? 'var(--green)' : '#333'}; padding:12px; min-width:200px; opacity:${canMake ? '1' : '0.5'}">
-            <div style="font-size:20px; margin-bottom:4px">${recipe.icon} ${recipe.name}</div>
-            <div style="font-size:10px; color:var(--text-secondary)">Kosten: ${costText}</div>
-            <div style="font-size:10px; color:var(--gold)">+${recipe.xp} XP</div>
-            ${canMake ? `<button class="btn-minecraft" style="min-width:auto; margin-top:8px; font-size:10px; padding:6px 12px" onclick="doCraft('${recipe.id}')">Craft!</button>` : ''}
+    let html = '';
+
+    // ===== BONUSSEN =====
+    html += '<h3 style="margin:16px 0 10px; font-size:14px">🎁 Bonussen</h3>';
+    html += '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px">';
+
+    const bonuses = getAvailableBonuses(currentPlayer);
+    if (bonuses.length === 0) {
+        html += '<div style="font-size:10px; color:var(--text-secondary); padding:8px">Geen bonussen beschikbaar. Oefen meer om bonussen te verdienen!</div>';
+    }
+    for (const bonus of bonuses) {
+        const claimed = currentPlayer.claimedBonuses?.includes(bonus.id);
+        html += `<div style="background:var(--bg-medium); border:2px solid ${claimed ? '#444' : 'var(--gold)'}; padding:12px; min-width:180px; opacity:${claimed ? '0.5' : '1'}">
+            <div style="font-size:20px; margin-bottom:4px">${bonus.icon}</div>
+            <div style="font-size:10px; color:#fff; margin-bottom:2px">${bonus.name}</div>
+            <div style="font-size:9px; color:var(--text-secondary)">${bonus.desc}</div>
+            <div style="font-size:9px; color:var(--gold); margin-top:4px">${bonus.rewardText}</div>
+            ${claimed ? '<div style="font-size:9px; color:#666; margin-top:4px">✓ Opgehaald</div>' : `<button class="btn-minecraft" style="min-width:auto; margin-top:8px; font-size:10px; padding:6px 12px; background:var(--gold); border-color:#ffeb3b #c49000 #c49000 #ffeb3b" onclick="claimBonus('${bonus.id}')">Ophalen!</button>`}
         </div>`;
     }
-    craftSection.innerHTML += '</div>';
+    html += '</div>';
+
+    // ===== CRAFTING — grouped by tier =====
+    const tierNames = ['🪵 Hout', '🪨 Steen', '🔩 IJzer', '🥇 Goud', '💎 Diamant'];
+    const tierColors = ['#8d6e63', '#9e9e9e', '#e0e0e0', '#ffc107', '#4dd0e1'];
+
+    for (let tier = 0; tier <= 4; tier++) {
+        const tierRecipes = CRAFT_RECIPES.filter(r => r.tier === tier);
+        if (tierRecipes.length === 0) continue;
+
+        // Check if tier is accessible (player has unlocked the wijk)
+        const tierUnlocked = tier === 0 || (currentPlayer.world?.unlockedBiomes?.includes(tier));
+
+        html += `<h3 style="margin:16px 0 8px; font-size:12px; color:${tierColors[tier]}; border-bottom:1px solid ${tierColors[tier]}33; padding-bottom:4px">${tierNames[tier]}</h3>`;
+        html += '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px">';
+
+        for (const recipe of tierRecipes) {
+            const canMake = tierUnlocked && canCraft(recipe, currentPlayer.resources);
+            const alreadyOwns = !recipe.repeatable && currentPlayer.inventory.some(i => i.id === recipe.id);
+            const costText = Object.entries(recipe.cost).map(([r, n]) => `${RESOURCES[r]?.icon || ''} ${n}`).join(' + ');
+            const borderColor = alreadyOwns ? 'var(--gold)' : canMake ? 'var(--green)' : '#333';
+            const dimmed = !tierUnlocked || (!canMake && !alreadyOwns);
+
+            html += `<div style="background:var(--bg-medium); border:2px solid ${borderColor}; padding:10px; min-width:160px; flex:1; max-width:200px; opacity:${dimmed ? '0.4' : '1'}">
+                <div style="font-size:18px; margin-bottom:2px">${recipe.icon} <span style="font-size:10px">${recipe.name}</span></div>
+                <div style="font-size:8px; color:var(--text-secondary)">${costText}</div>
+                <div style="font-size:8px; color:var(--green); margin-top:2px">${recipe.effect || ''}</div>
+                ${alreadyOwns ? '<div style="font-size:8px; color:var(--gold); margin-top:4px">✓ Gecraftd</div>' : canMake ? `<button class="btn-minecraft" style="min-width:auto; margin-top:6px; font-size:9px; padding:5px 10px" onclick="doCraft('${recipe.id}')">Craft!</button>` : !tierUnlocked ? '<div style="font-size:8px; color:#666; margin-top:4px">🔒 Wijk niet ontgrendeld</div>' : ''}
+            </div>`;
+        }
+        html += '</div>';
+    }
+
+    craftSection.innerHTML = html;
     showScreen('screen-inventory');
+}
+
+/* ===== Bonus System ===== */
+
+function getAvailableBonuses(player) {
+    const today = getToday();
+    const bonuses = [];
+    const completedCount = player.world?.buildings?.filter(b => b.completed).length || 0;
+
+    // Dagelijkse oefening
+    if (player.lastPracticeDate === today) {
+        bonuses.push({
+            id: `daily_${today}`, icon: '☀️',
+            name: 'Dagelijkse Oefening', desc: 'Je hebt vandaag geoefend!',
+            rewardText: '+5 hout, +10 XP',
+            reward: { resource: 'hout', amount: 5, xp: 10 }
+        });
+    }
+
+    // Streaks
+    if (player.streak >= 3) {
+        bonuses.push({
+            id: `streak3_${Math.floor(player.streak / 3)}`, icon: '🔥',
+            name: '3 Dagen Streak!', desc: `${player.streak} dagen achter elkaar!`,
+            rewardText: '+3 steen, +15 XP',
+            reward: { resource: 'steen', amount: 3, xp: 15 }
+        });
+    }
+    if (player.streak >= 7) {
+        bonuses.push({
+            id: `streak7_${Math.floor(player.streak / 7)}`, icon: '💪',
+            name: 'Week Streak!', desc: `${player.streak} dagen — ongelooflijk!`,
+            rewardText: '+2 ijzer, +1 goud, +30 XP',
+            reward: { resource: 'ijzer', amount: 2, xp: 30, extra: { resource: 'goud', amount: 1 } }
+        });
+    }
+    if (player.streak >= 14) {
+        bonuses.push({
+            id: `streak14_${Math.floor(player.streak / 14)}`, icon: '⚡',
+            name: '2 Weken Streak!', desc: `${player.streak} dagen — legendarisch!`,
+            rewardText: '+3 goud, +2 diamant, +50 XP',
+            reward: { resource: 'goud', amount: 3, xp: 50, extra: { resource: 'diamant', amount: 2 } }
+        });
+    }
+
+    // Gebouwen milestones
+    const buildingMilestones = [1, 3, 6, 9, 12, 15];
+    for (const m of buildingMilestones) {
+        if (completedCount >= m) {
+            const tierReward = m <= 3 ? { resource: 'steen', amount: m * 2 }
+                             : m <= 6 ? { resource: 'ijzer', amount: m }
+                             : m <= 9 ? { resource: 'goud', amount: m }
+                             : { resource: 'diamant', amount: Math.floor(m / 3) };
+            bonuses.push({
+                id: `building_${m}`, icon: m >= 12 ? '🏰' : m >= 6 ? '🏙️' : '🏠',
+                name: `${m} Gebouw${m > 1 ? 'en' : ''} Af!`,
+                desc: `Je hebt ${m} gebouw${m > 1 ? 'en' : ''} voltooid.`,
+                rewardText: `+${tierReward.amount} ${tierReward.resource}, +${m * 15} XP`,
+                reward: { ...tierReward, xp: m * 15 }
+            });
+        }
+    }
+
+    // Snelheid milestones
+    const wpmMilestones = [
+        { wpm: 10, id: 'wpm_10', name: 'Eerste Stappen', icon: '🐢', reward: { resource: 'hout', amount: 10, xp: 20 } },
+        { wpm: 20, id: 'wpm_20', name: 'Op Gang!', icon: '🚶', reward: { resource: 'steen', amount: 8, xp: 30 } },
+        { wpm: 30, id: 'wpm_30', name: 'Snelle Vingers', icon: '🏃', reward: { resource: 'ijzer', amount: 5, xp: 50 } },
+        { wpm: 40, id: 'wpm_40', name: 'Typkampioen!', icon: '🚀', reward: { resource: 'goud', amount: 5, xp: 75 } },
+        { wpm: 50, id: 'wpm_50', name: 'Bliksemtyper!', icon: '⚡', reward: { resource: 'diamant', amount: 3, xp: 100 } },
+    ];
+    for (const ms of wpmMilestones) {
+        if (player.bestWpm >= ms.wpm) {
+            bonuses.push({
+                id: ms.id, icon: ms.icon,
+                name: ms.name, desc: `${ms.wpm}+ WPM behaald!`,
+                rewardText: `+${ms.reward.amount} ${ms.reward.resource}, +${ms.reward.xp} XP`,
+                reward: ms.reward
+            });
+        }
+    }
+
+    // Perfecte nauwkeurigheid
+    if (player.bestAccuracy >= 100) {
+        bonuses.push({
+            id: 'perfect_run', icon: '✨',
+            name: 'Perfectionist!', desc: '100% nauwkeurigheid behaald!',
+            rewardText: '+1 diamant, +50 XP',
+            reward: { resource: 'diamant', amount: 1, xp: 50 }
+        });
+    }
+
+    // Wijk ontgrendelings-bonussen
+    const wijkNames = ['Basis Kamp', 'Dorp', 'Stad', 'Vesting', 'Legende'];
+    const unlockedBiomes = player.world?.unlockedBiomes || [0];
+    for (let i = 1; i < wijkNames.length; i++) {
+        if (unlockedBiomes.includes(i)) {
+            bonuses.push({
+                id: `wijk_${i}`, icon: ['🏕️','🏘️','🏙️','🏰','🐉'][i],
+                name: `${wijkNames[i]} Ontgrendeld!`, desc: `Nieuwe wijk bereikt!`,
+                rewardText: `+${i * 3} ${['','steen','ijzer','goud','diamant'][i]}, +${i * 25} XP`,
+                reward: { resource: ['hout','steen','ijzer','goud','diamant'][i], amount: i * 3, xp: i * 25 }
+            });
+        }
+    }
+
+    const claimed = player.claimedBonuses || [];
+    return bonuses.filter(b => !claimed.includes(b.id));
+}
+
+async function claimBonus(bonusId) {
+    if (!currentPlayer) return;
+
+    const bonuses = getAvailableBonuses(currentPlayer);
+    const bonus = bonuses.find(b => b.id === bonusId);
+    if (!bonus) return;
+
+    // Initialize claimedBonuses array
+    if (!currentPlayer.claimedBonuses) currentPlayer.claimedBonuses = [];
+    currentPlayer.claimedBonuses.push(bonusId);
+
+    // Apply reward
+    const r = bonus.reward;
+    if (r.resource) {
+        currentPlayer.resources[r.resource] = (currentPlayer.resources[r.resource] || 0) + r.amount;
+    }
+    if (r.extra) {
+        currentPlayer.resources[r.extra.resource] = (currentPlayer.resources[r.extra.resource] || 0) + r.extra.amount;
+    }
+    if (r.xp) {
+        currentPlayer.xp += r.xp;
+        const levelInfo = calculateLevel(currentPlayer.xp);
+        currentPlayer.level = levelInfo.level;
+        currentPlayer.xpToNext = levelInfo.xpToNext;
+    }
+
+    await savePlayer(currentPlayer);
+    soundAchievement();
+    showToast(`${bonus.icon} ${bonus.name} opgehaald!`);
+    showInventory(); // Refresh
 }
 
 async function doCraft(recipeId) {
@@ -1138,30 +1521,20 @@ function updateMenuScreen() { updateWorldScreen(); }
 /* ===== Visual Enhancements ===== */
 
 function addFloatingItems() {
-    const screen = document.getElementById('screen-profiles');
-    const items = ['⛏️', '🗡️', '💎', '🪓', '🏗️', '⭐', '🔥', '🛡️', '🪣', '🧱', '🌲', '⚔️'];
-    for (let i = 0; i < 12; i++) {
-        const el = document.createElement('div');
-        el.className = 'floating-item';
-        el.textContent = items[i % items.length];
-        el.style.left = (5 + Math.random() * 90) + '%';
-        el.style.top = (5 + Math.random() * 85) + '%';
-        el.style.animationDelay = (Math.random() * 8) + 's';
-        el.style.animationDuration = (6 + Math.random() * 6) + 's';
-        el.style.fontSize = (16 + Math.random() * 16) + 'px';
-        el.style.opacity = 0.08 + Math.random() * 0.12;
-        screen.appendChild(el);
+    // Generate stars for home screen background
+    const starsContainer = document.getElementById('home-stars');
+    if (!starsContainer) return;
+    for (let i = 0; i < 40; i++) {
+        const star = document.createElement('div');
+        star.className = 'home-star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        const size = 1 + Math.random() * 2;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        star.style.animationDuration = (2 + Math.random() * 3) + 's';
+        starsContainer.appendChild(star);
     }
 }
 
-async function loadProfileLevels() {
-    for (const p of Object.keys(PLAYERS)) {
-        try {
-            const data = await getPlayer(p);
-            if (data) {
-                const lvl = document.getElementById('level-' + p);
-                if (lvl) lvl.textContent = 'Level ' + (data.level || 1);
-            }
-        } catch (e) { /* first visit */ }
-    }
-}

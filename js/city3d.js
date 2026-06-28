@@ -90,7 +90,7 @@ const CITY_LAYERS = [
                 id: 'houten_hut',
                 name: 'Houten Hut',
                 icon: '🏠',
-                blocksNeeded: 12,
+                blocksNeeded: 20,
                 material: 'hout',
                 grid: [
                     [null,null,null,'chimney',null,null,null,null],
@@ -107,7 +107,7 @@ const CITY_LAYERS = [
                 id: 'werkplaats',
                 name: 'Werkplaats',
                 icon: '🔨',
-                blocksNeeded: 10,
+                blocksNeeded: 20,
                 material: 'hout',
                 grid: [
                     [null,null,'torch',null,null,null,null],
@@ -123,7 +123,7 @@ const CITY_LAYERS = [
                 id: 'boerderij',
                 name: 'Boerderij',
                 icon: '🌾',
-                blocksNeeded: 12,
+                blocksNeeded: 20,
                 material: 'hout',
                 grid: [
                     [null,null,'roof_oak','roof_oak','roof_oak',null,null,null,null],
@@ -148,7 +148,7 @@ const CITY_LAYERS = [
                 id: 'stenen_huis',
                 name: 'Stenen Huis',
                 icon: '🏠',
-                blocksNeeded: 18,
+                blocksNeeded: 20,
                 material: 'steen',
                 grid: [
                     [null,null,null,null,'chimney',null,null,null,null],
@@ -165,7 +165,7 @@ const CITY_LAYERS = [
                 id: 'smederij',
                 name: 'Smederij',
                 icon: '⚒️',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'steen',
                 grid: [
                     [null,null,null,'chimney','chimney',null,null,null],
@@ -181,7 +181,7 @@ const CITY_LAYERS = [
                 id: 'bibliotheek',
                 name: 'Bibliotheek',
                 icon: '📚',
-                blocksNeeded: 16,
+                blocksNeeded: 20,
                 material: 'steen',
                 grid: [
                     [null,'roof_oak','roof_oak','roof_oak','roof_oak','roof_oak','roof_oak',null],
@@ -205,7 +205,7 @@ const CITY_LAYERS = [
                 id: 'markthal',
                 name: 'Markthal',
                 icon: '🏪',
-                blocksNeeded: 22,
+                blocksNeeded: 20,
                 material: 'ijzer',
                 grid: [
                     [null,null,'flag_red',null,null,null,'flag_blue',null,null],
@@ -221,7 +221,7 @@ const CITY_LAYERS = [
                 id: 'wachttoren',
                 name: 'Wachttoren',
                 icon: '🗼',
-                blocksNeeded: 22,
+                blocksNeeded: 20,
                 material: 'ijzer',
                 grid: [
                     [null,null,'torch',null,null],
@@ -263,7 +263,7 @@ const CITY_LAYERS = [
                 id: 'kasteel',
                 name: 'Kasteel',
                 icon: '🏰',
-                blocksNeeded: 28,
+                blocksNeeded: 20,
                 material: 'goud',
                 grid: [
                     ['stone_brick',null,null,null,'flag_red',null,null,null,'stone_brick'],
@@ -280,7 +280,7 @@ const CITY_LAYERS = [
                 id: 'nether_portaal',
                 name: 'Nether Portaal',
                 icon: '🟣',
-                blocksNeeded: 26,
+                blocksNeeded: 20,
                 material: 'goud',
                 grid: [
                     [null,null,'obsidian','obsidian','obsidian','obsidian',null,null],
@@ -297,7 +297,7 @@ const CITY_LAYERS = [
                 id: 'tovenaarstoren',
                 name: 'Tovenaarstoren',
                 icon: '🧙',
-                blocksNeeded: 26,
+                blocksNeeded: 20,
                 material: 'goud',
                 grid: [
                     [null,null,'diamond_block',null,null],
@@ -325,7 +325,7 @@ const CITY_LAYERS = [
                 id: 'end_toren',
                 name: 'End Toren',
                 icon: '🗽',
-                blocksNeeded: 32,
+                blocksNeeded: 20,
                 material: 'diamant',
                 grid: [
                     [null,null,'beacon_light',null,null],
@@ -345,7 +345,7 @@ const CITY_LAYERS = [
                 id: 'drakentroon',
                 name: 'Drakentroon',
                 icon: '🐉',
-                blocksNeeded: 30,
+                blocksNeeded: 20,
                 material: 'diamant',
                 grid: [
                     [null,null,null,'glowstone',null,null,null],
@@ -361,7 +361,7 @@ const CITY_LAYERS = [
                 id: 'beacon',
                 name: 'Beacon',
                 icon: '💎',
-                blocksNeeded: 30,
+                blocksNeeded: 20,
                 material: 'diamant',
                 grid: [
                     [null,null,'beacon_light',null,null],
@@ -453,7 +453,7 @@ function getLayerStatus(layerIndex, playerDataMap) {
 }
 
 /* ===== Render Building Sprite ===== */
-function renderBuildingSprite(building, blocksPlaced, blocksNeeded, blockSize) {
+function renderBuildingSprite(building, blocksPlaced, blocksNeeded, blockSize, highlightGameBlocks) {
     const grid = building.grid;
     if (!grid || grid.length === 0) return '<div></div>';
 
@@ -464,8 +464,9 @@ function renderBuildingSprite(building, blocksPlaced, blocksNeeded, blockSize) {
     let totalGridBlocks = 0;
     for (const row of grid) for (const cell of row) if (cell) totalGridBlocks++;
 
-    const fraction = blocksNeeded > 0 ? Math.min(1, blocksPlaced / blocksNeeded) : 0;
-    const solidGridBlocks = Math.round(fraction * totalGridBlocks);
+    // 1 game-block = 1 grid-cell. When building is complete, fill everything.
+    const isComplete = blocksPlaced >= blocksNeeded;
+    const solidGridBlocks = isComplete ? totalGridBlocks : Math.min(blocksPlaced, totalGridBlocks);
 
     const blockCells = [];
     for (let r = rows - 1; r >= 0; r--) {
@@ -475,8 +476,12 @@ function renderBuildingSprite(building, blocksPlaced, blocksNeeded, blockSize) {
     }
 
     const solidSet = new Set();
+    const highlightSet = new Set();
     for (let i = 0; i < solidGridBlocks && i < blockCells.length; i++) {
         solidSet.add(`${blockCells[i].r},${blockCells[i].c}`);
+        if (highlightGameBlocks && !isComplete && i >= solidGridBlocks - highlightGameBlocks) {
+            highlightSet.add(`${blockCells[i].r},${blockCells[i].c}`);
+        }
     }
 
     let html = `<div class="building-sprite" style="
@@ -492,10 +497,12 @@ function renderBuildingSprite(building, blocksPlaced, blocksNeeded, blockSize) {
             } else {
                 const color = BLOCK_COLORS[blockType] || '#888';
                 const isSolid = solidSet.has(`${r},${c}`);
+                const isHighlight = highlightSet.has(`${r},${c}`);
                 const isLava = blockType.startsWith('lava');
                 const isGlow = blockType === 'torch' || blockType === 'lantern' || blockType === 'glowstone' || blockType === 'beacon_light';
                 const extra = isLava ? ' lava-glow' : isGlow ? ' light-glow' : '';
-                html += `<div class="city-block ${isSolid ? 'solid' : 'ghost'}${extra}" style="background:${color};"></div>`;
+                const hlClass = isHighlight ? ' block-new' : '';
+                html += `<div class="city-block ${isSolid ? 'solid' : 'ghost'}${extra}${hlClass}" style="background:${color};"></div>`;
             }
         }
     }
@@ -585,27 +592,18 @@ function renderSky() {
     </div>`;
 }
 
-/* ===== Render City ===== */
+/* ===== Render City — 3 Player Columns ===== */
 async function renderCity(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
     const playerDataMap = {};
-    for (const id of Object.keys(PLAYERS)) {
+    const playerIds = Object.keys(PLAYERS);
+    for (const id of playerIds) {
         playerDataMap[id] = await getPlayer(id);
     }
 
     const layerStatuses = CITY_LAYERS.map((_, i) => getLayerStatus(i, playerDataMap));
-
-    // Total progress
-    let totalCompleted = 0, totalBuildings = 0;
-    for (let li = 0; li < CITY_LAYERS.length; li++) {
-        for (const b of CITY_LAYERS[li].buildings) {
-            totalBuildings++;
-            const s = layerStatuses[li].claims[b.id];
-            if (s && s.completed) totalCompleted++;
-        }
-    }
 
     // Find active wijk (first incomplete unlocked wijk)
     let activeWijk = 0;
@@ -614,127 +612,108 @@ async function renderCity(containerId) {
         if (i === CITY_LAYERS.length - 1) activeWijk = i;
     }
 
+    const activeLayer = CITY_LAYERS[activeWijk];
+    const activeStatus = layerStatuses[activeWijk];
+
     let html = renderSky();
 
-    // Wijk tabs
-    html += '<div class="wijk-tabs">';
+    // Wijk progress bar at top
+    html += '<div class="wijk-progress-bar">';
     for (let i = 0; i < CITY_LAYERS.length; i++) {
         const w = CITY_LAYERS[i];
         const s = layerStatuses[i];
         const cls = !s.unlocked ? 'locked' : s.complete ? 'complete' : i === activeWijk ? 'active' : '';
-        html += `<div class="wijk-tab ${cls}" onclick="${s.unlocked ? `scrollToWijk(${i})` : ''}" title="${w.name}">
-            <span class="wijk-tab-icon">${!s.unlocked ? '🔒' : s.complete ? '✅' : w.icon}</span>
-            <span class="wijk-tab-name">${w.name}</span>
-        </div>`;
+        html += `<div class="wijk-pip ${cls}" title="${w.name}">${!s.unlocked ? '🔒' : s.complete ? '✅' : w.icon}</div>`;
     }
+    html += `<span class="wijk-progress-label">${activeLayer.icon} ${activeLayer.name}</span>`;
     html += '</div>';
 
-    // Panorama
-    html += '<div class="city-panorama" id="city-panorama">';
+    // 3 player columns
+    html += '<div class="city-columns">';
 
-    for (let wi = 0; wi < CITY_LAYERS.length; wi++) {
-        const wijk = CITY_LAYERS[wi];
-        const status = layerStatuses[wi];
-        const isActive = wi === activeWijk;
+    for (let pi = 0; pi < playerIds.length; pi++) {
+        const playerId = playerIds[pi];
+        const playerInfo = PLAYERS[playerId];
+        const pd = playerDataMap[playerId];
+        const color = getPlayerColor(playerId);
+        const isCurrentPlayer = currentPlayer && currentPlayer.id === playerId;
 
-        html += `<div class="wijk" id="wijk-${wi}" data-wijk="${wi}">`;
+        html += `<div class="player-column ${isCurrentPlayer ? 'current' : ''}" style="--player-color:${color}">`;
 
-        if (!status.unlocked) {
-            // Locked wijk — show silhouette
-            html += `<div class="wijk-locked-overlay">
-                <div class="wijk-lock-icon">🔒</div>
-                <div class="wijk-lock-text">${wijk.name}</div>
-                <div class="wijk-lock-hint">Maak wijk "${CITY_LAYERS[wi-1]?.name}" eerst samen af!</div>
-            </div>`;
-            // Still show buildings as dark silhouettes
-            html += '<div class="wijk-buildings wijk-silhouette">';
-            for (const building of wijk.buildings) {
-                html += `<div class="wijk-building-slot">
-                    ${renderBuildingSprite(building, 0, building.blocksNeeded)}
-                </div>`;
-            }
-            html += '</div>';
-        } else {
-            // Wijk header
-            if (status.complete) {
-                html += `<div class="wijk-complete-badge">✅ ${wijk.icon} ${wijk.name} Voltooid!</div>`;
-            } else if (isActive) {
-                // Progress for this wijk
-                const done = wijk.buildings.filter(b => status.claims[b.id]?.completed).length;
-                html += `<div class="wijk-header">
-                    <span class="wijk-name">${wijk.icon} ${wijk.name}</span>
-                    <span class="wijk-progress-text">${done}/3 gebouwen</span>
-                </div>`;
-            }
+        // Stack buildings bottom-up: completed buildings from previous wijken + current
+        html += '<div class="column-buildings">';
 
-            // Buildings
-            html += '<div class="wijk-buildings">';
-            for (const building of wijk.buildings) {
-                const claim = status.claims[building.id];
-                const blocksPlaced = claim ? claim.blocksPlaced : 0;
-                const isCompleted = claim?.completed;
-                const pct = Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100));
-
-                let badge = '';
-                if (claim) {
-                    const color = getPlayerColor(claim.playerId);
-                    const initial = (claim.playerName || claim.playerId).charAt(0).toUpperCase();
-                    badge = `<div class="building-player" style="background:${color}">${initial}</div>`;
+        // Show completed buildings from ALL previous wijken (stacked)
+        for (let wi = 0; wi < activeWijk; wi++) {
+            const layer = CITY_LAYERS[wi];
+            for (const building of layer.buildings) {
+                const bld = pd?.world?.buildings?.find(b => b.projectId === building.id);
+                if (bld && bld.completed) {
+                    html += `<div class="column-building done">
+                        ${renderBuildingSprite(building, building.blocksNeeded, building.blocksNeeded)}
+                    </div>`;
                 }
+            }
+        }
 
-                const clickable = status.unlocked && !isCompleted;
-                html += `<div class="wijk-building-slot ${isCompleted ? 'done' : ''} ${clickable ? 'clickable' : ''}"
-                    ${clickable ? `onclick="handleBuildingClick('${building.id}', ${wi})"` : ''}>
+        // Current wijk: show the building this player is working on or can pick
+        const activeBuilding = pd?.world?.activeProject;
+        let shownActive = false;
+
+        for (const building of activeLayer.buildings) {
+            const bld = pd?.world?.buildings?.find(b => b.projectId === building.id);
+            if (!bld) continue;
+            const blocksPlaced = bld.blocksPlaced || 0;
+            const isCompleted = bld.completed;
+
+            if (isCompleted || activeBuilding === building.id) {
+                const pct = Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100));
+                const clickable = isCurrentPlayer && !isCompleted;
+                html += `<div class="column-building ${isCompleted ? 'done' : 'active'} ${clickable ? 'clickable' : ''}"
+                    ${clickable ? `onclick="startBuildSession()"` : ''}>
                     ${renderBuildingSprite(building, blocksPlaced, building.blocksNeeded)}
-                    ${badge}
                     <div class="building-label">
                         <span class="building-label-name">${building.name}</span>
                         ${!isCompleted ? `<span class="building-label-pct">${pct}%</span>` : '<span class="building-label-pct">✅</span>'}
                     </div>
                 </div>`;
+                shownActive = true;
             }
-            html += '</div>';
         }
 
+        // If no active building yet, show "choose" prompt for current player
+        if (!shownActive && isCurrentPlayer && activeStatus.unlocked) {
+            html += `<div class="column-building choose" onclick="openBuildMenu()">
+                <div class="choose-prompt">⛏</div>
+                <div class="building-label"><span class="building-label-name">Kies gebouw</span></div>
+            </div>`;
+        } else if (!shownActive && !isCurrentPlayer) {
+            // Other players who haven't picked yet
+            html += `<div class="column-building ghost-slot">
+                <div class="choose-prompt" style="opacity:0.3">?</div>
+            </div>`;
+        }
+
+        html += '</div>'; // column-buildings
+
         // Ground
-        html += `<div class="wijk-ground">
-            <div class="ground-strip" style="background:${wijk.groundColor}"></div>
-            <div class="ground-strip ground-sub" style="background:${wijk.subColor}"></div>
+        html += `<div class="column-ground" style="background:${activeLayer.groundColor}"></div>`;
+
+        // Player name plate
+        html += `<div class="column-nameplate" style="border-color:${color}">
+            <div class="column-avatar" style="background:${color}">${playerInfo.name.charAt(0)}</div>
+            <span class="column-name">${playerInfo.name}</span>
         </div>`;
 
-        html += '</div>'; // wijk
+        html += '</div>'; // player-column
     }
 
-    html += '</div>'; // panorama
-
-    // Team bar
-    html += '<div class="team-bar">';
-    for (const [id, info] of Object.entries(PLAYERS)) {
-        const pd = playerDataMap[id];
-        const buildingCount = pd?.world?.buildings?.filter(b => b.completed).length || 0;
-        const active = pd?.world?.activeProject;
-        const proj = active ? BUILDING_PROJECTS.find(p => p.id === active) : null;
-        const color = getPlayerColor(id);
-        html += `<div class="team-member" style="--player-color:${color}">
-            <div class="team-avatar" style="background:${color}">${info.name.charAt(0)}</div>
-            <div class="team-info">
-                <div class="team-name">${info.name}</div>
-                <div class="team-status">${proj ? `⛏ ${proj.name}` : buildingCount > 0 ? `${buildingCount} gebouwd` : 'Klaar om te bouwen!'}</div>
-            </div>
-        </div>`;
-    }
-    html += '</div>';
+    html += '</div>'; // city-columns
 
     container.innerHTML = html;
-
-    // Scroll to active wijk
-    setTimeout(() => scrollToWijk(activeWijk), 100);
 }
 
-function scrollToWijk(index) {
-    const el = document.getElementById(`wijk-${index}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-}
+function scrollToWijk(index) { /* no-op — columns layout doesn't scroll */ }
 
 /* ===== renderCity3D — alias ===== */
 async function renderCity3D(containerId) { return renderCity(containerId); }
@@ -774,12 +753,15 @@ function renderBuilding(buildingId, blocksPlaced, totalBlocks) {
     return '';
 }
 
-function animateNewBlock(buildingId, blocksPlaced, totalBlocks) {
+function animateNewBlock(buildingId, blocksPlaced, totalBlocks, highlightGameBlocks) {
     const structure = document.getElementById('build-structure');
     if (!structure) return;
     for (const layer of CITY_LAYERS) {
         const b = layer.buildings.find(x => x.id === buildingId);
-        if (b) { structure.innerHTML = renderBuildingSprite(b, blocksPlaced, totalBlocks || b.blocksNeeded, 24); return; }
+        if (b) {
+            structure.innerHTML = renderBuildingSprite(b, blocksPlaced, totalBlocks || b.blocksNeeded, 24, highlightGameBlocks || 1);
+            return;
+        }
     }
 }
 

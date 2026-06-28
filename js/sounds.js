@@ -119,6 +119,22 @@ function soundResourceEarned() {
     setTimeout(() => playTone(1175, 0.1, 'triangle', 0.08), 140);
 }
 
+function soundRoundComplete() {
+    // Triumphant "you did it!" — ascending major chord with sparkle
+    playTone(523, 0.15, 'square', 0.1);
+    setTimeout(() => playTone(659, 0.15, 'square', 0.1), 120);
+    setTimeout(() => playTone(784, 0.15, 'square', 0.1), 240);
+    setTimeout(() => playTone(1047, 0.25, 'triangle', 0.12), 360);
+    setTimeout(() => playTone(1319, 0.3, 'triangle', 0.08), 500);
+}
+
+function soundBlockPlace() {
+    // Satisfying block-place "thunk" + short chime
+    playTone(220, 0.06, 'square', 0.12);
+    setTimeout(() => playTone(440, 0.08, 'triangle', 0.08), 60);
+    setTimeout(() => playTone(660, 0.1, 'triangle', 0.06), 130);
+}
+
 function soundButtonClick() {
     playTone(600, 0.04, 'square', 0.06);
 }

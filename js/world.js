@@ -232,21 +232,40 @@ function rollRandomEvent(player) {
 
 /* ===== Word Lists by Building Material (maps to key groups) ===== */
 
-function getWordsForProject(project, playerAge) {
+function getWordsForProject(project, playerAge, player) {
     const biomeIdx = project.biome;
-    const lessonSet = LESSON_SETS[biomeIdx];
-    if (!lessonSet) return [];
 
-    // Gather all words and sentences from this biome's lessons
+    // Adaptive: use lessons up to the player's current progress
+    // This ensures building words match what the player has learned
+    const maxBiome = player ? player.currentBiome : biomeIdx;
+    const maxLesson = player ? player.currentLesson : 999;
+
     let allTexts = [];
-    for (const lesson of lessonSet.lessons) {
-        if (lesson.words) allTexts.push(...lesson.words);
-        if (lesson.sentences) {
-            if (playerAge >= 10) {
-                allTexts.push(...lesson.sentences);
-            } else {
-                lesson.sentences.filter(s => s.length < 30).forEach(s => allTexts.push(s));
+
+    // Gather words from all biomes up to and including current progress
+    for (let bi = 0; bi <= Math.min(biomeIdx, maxBiome); bi++) {
+        const lessonSet = LESSON_SETS[bi];
+        if (!lessonSet) continue;
+
+        const lessonLimit = (bi < maxBiome) ? lessonSet.lessons.length : maxLesson + 1;
+        for (let li = 0; li < Math.min(lessonSet.lessons.length, lessonLimit); li++) {
+            const lesson = lessonSet.lessons[li];
+            if (lesson.words) allTexts.push(...lesson.words);
+            if (lesson.sentences) {
+                if (playerAge >= 10) {
+                    allTexts.push(...lesson.sentences);
+                } else {
+                    lesson.sentences.filter(s => s.length < 30).forEach(s => allTexts.push(s));
+                }
             }
+        }
+    }
+
+    // Fallback: if no texts found (player hasn't started), use first lesson
+    if (allTexts.length === 0) {
+        const firstSet = LESSON_SETS[0];
+        if (firstSet && firstSet.lessons[0]) {
+            if (firstSet.lessons[0].words) allTexts.push(...firstSet.lessons[0].words);
         }
     }
 
@@ -259,19 +278,24 @@ function getWordsForProject(project, playerAge) {
     return allTexts;
 }
 
-// 1 resource earned per WORDS_PER_RESOURCE words typed
-const WORDS_PER_RESOURCE = 8;
+// Target space-separated words per line (1 line = 1 block)
+const WORDS_PER_LINE = 12;
+// Lines per session (1 session = 3 blocks)
+const LINES_PER_SESSION = 3;
 
-function generateBuildingText(project, playerAge, blocksRemaining) {
-    const words = getWordsForProject(project, playerAge);
-    // Generate enough words for all remaining resources
-    // 1 resource per 8 words, so total words = blocksRemaining * WORDS_PER_RESOURCE
-    const minWords = playerAge <= 8 ? 16 : 24;
-    const remaining = blocksRemaining || project.blocksNeeded;
-    const count = Math.max(minWords, remaining * WORDS_PER_RESOURCE);
+function generateRoundText(project, playerAge, player) {
+    const items = getWordsForProject(project, playerAge, player);
+    // Build text by adding items until we have enough space-separated words
+    const targetWords = WORDS_PER_LINE * LINES_PER_SESSION;
     const result = [];
-    for (let i = 0; i < count; i++) {
-        result.push(words[i % words.length]);
+    let spaceWordCount = 0;
+    let i = 0;
+    while (spaceWordCount < targetWords) {
+        const item = items[i % items.length];
+        const itemWords = item.split(' ').length;
+        result.push(item);
+        spaceWordCount += itemWords;
+        i++;
     }
     return result.join(' ');
 }

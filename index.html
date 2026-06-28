@@ -12,37 +12,68 @@
 <body>
     <!-- SCREEN: Profile Selection -->
     <div id="screen-profiles" class="screen active">
-        <div class="title-banner">
-            <h1>TypeCraft</h1>
-            <p class="subtitle">Bouw samen een stad door te typen!</p>
+        <!-- Animated background layers -->
+        <div class="home-bg">
+            <div class="home-sky"></div>
+            <div class="home-stars" id="home-stars"></div>
+            <div class="home-clouds">
+                <span class="home-cloud hc1">☁</span>
+                <span class="home-cloud hc2">☁</span>
+                <span class="home-cloud hc3">☁</span>
+            </div>
+            <div class="home-ground"></div>
+            <div class="home-ground-sub"></div>
         </div>
-        <div class="profile-cards">
-            <div class="profile-card" data-player="sebas" onclick="selectProfile('sebas')">
-                <div class="avatar avatar-sebas"></div>
-                <h2>Sebas</h2>
-                <p class="age-badge">13 jaar</p>
-                <div class="player-level" id="level-sebas">Level 1</div>
+
+        <!-- Title -->
+        <div class="home-title">
+            <div class="home-logo">
+                <span class="logo-icon">⛏️</span>
+                <h1>TypeCraft</h1>
             </div>
-            <div class="profile-card" data-player="jonathan" onclick="selectProfile('jonathan')">
-                <div class="avatar avatar-jonathan"></div>
-                <h2>Jonathan</h2>
-                <p class="age-badge">11 jaar</p>
-                <div class="player-level" id="level-jonathan">Level 1</div>
+            <p class="home-subtitle">Bouw samen een stad door te typen!</p>
+        </div>
+
+        <!-- Player cards -->
+        <div class="home-players">
+            <div class="home-card" data-player="sebas" onclick="selectProfile('sebas')">
+                <div class="home-avatar ha-sebas">
+                    <div class="ha-pickaxe">⛏️</div>
+                </div>
+                <div class="home-card-info">
+                    <h2>Sebas</h2>
+                    <span class="home-age">13 jaar</span>
+                </div>
+                <div class="home-card-arrow">▶</div>
             </div>
-            <div class="profile-card" data-player="benjamin" onclick="selectProfile('benjamin')">
-                <div class="avatar avatar-benjamin"></div>
-                <h2>Benjamin</h2>
-                <p class="age-badge">7 jaar</p>
-                <div class="player-level" id="level-benjamin">Level 1</div>
+
+            <div class="home-card" data-player="jonathan" onclick="selectProfile('jonathan')">
+                <div class="home-avatar ha-jonathan">
+                    <div class="ha-pickaxe">🗡️</div>
+                </div>
+                <div class="home-card-info">
+                    <h2>Jonathan</h2>
+                    <span class="home-age">11 jaar</span>
+                </div>
+                <div class="home-card-arrow">▶</div>
+            </div>
+
+            <div class="home-card" data-player="benjamin" onclick="selectProfile('benjamin')">
+                <div class="home-avatar ha-benjamin">
+                    <div class="ha-pickaxe">🏹</div>
+                </div>
+                <div class="home-card-info">
+                    <h2>Benjamin</h2>
+                    <span class="home-age">7 jaar</span>
+                </div>
+                <div class="home-card-arrow">▶</div>
             </div>
         </div>
-        <div class="bottom-buttons">
-            <button class="btn-parent" onclick="showParentLogin()">
-                ⚙ Ouder Dashboard
-            </button>
-            <button class="btn-parent btn-sound" id="btn-sound" onclick="toggleSoundBtn()">
-                🔊 Geluid Aan
-            </button>
+
+        <!-- Bottom buttons -->
+        <div class="home-bottom">
+            <button class="btn-parent" onclick="showParentLogin()">⚙ Ouder</button>
+            <button class="btn-parent btn-sound" id="btn-sound" onclick="toggleSoundBtn()">🔊 Aan</button>
         </div>
     </div>
 
@@ -73,7 +104,7 @@
         <!-- Bottom action bar -->
         <div class="world-action-bar">
             <button class="btn-minecraft btn-small" onclick="showFamilyBoard()">🏆</button>
-            <button class="btn-minecraft btn-primary btn-build" id="btn-build" onclick="openBuildMenu()">
+            <button class="btn-minecraft btn-primary btn-build" id="btn-build" onclick="startBuildOrChoose()">
                 <span class="btn-icon">⛏</span> Bouwen!
             </button>
             <button class="btn-minecraft btn-small" onclick="showInventory()">🎒</button>
@@ -105,15 +136,26 @@
         <div class="event-popup" id="event-popup" style="display:none"></div>
     </div>
 
+    <!-- SCREEN: Finger Position Instruction -->
+    <div id="screen-fingers" class="screen">
+        <div class="fingers-container">
+            <h2 id="fingers-title">Nieuwe Toetsen!</h2>
+            <div class="fingers-diagram" id="fingers-diagram"></div>
+            <p id="fingers-hint" class="fingers-hint"></p>
+            <p class="fingers-fj-prompt">Druk <span class="fj-key">F</span> + <span class="fj-key">J</span> tegelijk in om te beginnen</p>
+        </div>
+    </div>
+
     <!-- SCREEN: Typing / Building -->
     <div id="screen-lesson" class="screen">
         <div class="lesson-header">
-            <button class="btn-back" onclick="endLesson()">← Pauze</button>
+            <button class="btn-back" onclick="endLesson()">← Stop</button>
             <div class="lesson-info">
                 <span id="lesson-title">Bouwen</span>
                 <span id="lesson-biome-badge" class="biome-badge">Plains</span>
             </div>
             <div class="lesson-stats-bar">
+                <span id="live-round" class="hud-stat">1/20</span>
                 <span id="live-wpm">0 WPM</span>
                 <span id="live-accuracy">100%</span>
                 <span id="live-timer">0:00</span>
@@ -145,6 +187,17 @@
 
     <!-- SCREEN: Lesson Results -->
     <div id="screen-results" class="screen">
+        <!-- Building visual — same position as typing screen -->
+        <div class="build-visual" id="results-build-visual" style="display:none">
+            <div class="build-structure" id="results-build-structure"></div>
+            <div class="build-info">
+                <span class="build-icon" id="results-build-icon">🏠</span>
+                <div class="build-progress-bar">
+                    <div class="build-progress-fill" id="results-build-fill" style="width:0%"></div>
+                </div>
+                <span class="build-pct" id="results-build-pct">0%</span>
+            </div>
+        </div>
         <div class="results-container">
             <h2 id="results-title">Les Voltooid!</h2>
             <div class="results-stats">
@@ -155,14 +208,6 @@
                 <div class="result-stat">
                     <div class="result-value" id="result-accuracy">0%</div>
                     <div class="result-label">Nauwkeurigheid</div>
-                </div>
-                <div class="result-stat">
-                    <div class="result-value" id="result-xp">+0</div>
-                    <div class="result-label">XP</div>
-                </div>
-                <div class="result-stat">
-                    <div class="result-value" id="result-blocks">0</div>
-                    <div class="result-label">Blokken</div>
                 </div>
             </div>
             <div class="results-resources" id="results-resources"></div>
