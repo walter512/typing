@@ -153,11 +153,11 @@ async function getAvailableProjects(player) {
         playerDataMap[id] = await getPlayer(id);
     }
 
-    // Show all buildings in unlocked layers that this player hasn't completed yet
+    // Show buildings in accessible layers (unlocked + 1 wijk vooruit)
+    const layerStatuses = CITY_LAYERS.map((_, i) => getLayerStatus(i, playerDataMap));
     const available = [];
     for (let i = 0; i < CITY_LAYERS.length; i++) {
-        const status = getLayerStatus(i, playerDataMap);
-        if (!status.unlocked) continue;
+        if (!isLayerAccessible(i, player, layerStatuses)) continue;
 
         const layer = CITY_LAYERS[i];
         for (const b of layer.buildings) {

@@ -409,6 +409,22 @@ function getPlayerColor(playerId) {
     return colors[playerId] || '#888';
 }
 
+/* ===== Per-player accessibility: unlocked + 1 wijk vooruit ===== */
+function isLayerAccessible(layerIndex, player, layerStatuses) {
+    if (layerStatuses[layerIndex].unlocked) return true;
+    if (layerIndex === 0) return true;
+
+    const prevStatus = layerStatuses[layerIndex - 1];
+    if (!prevStatus.unlocked) return false;
+
+    const prevLayer = CITY_LAYERS[layerIndex - 1];
+    const playerDoneInPrev = prevLayer.buildings.some(b => {
+        const bld = player?.world?.buildings?.find(x => x.projectId === b.id);
+        return bld && bld.completed;
+    });
+    return playerDoneInPrev;
+}
+
 /* ===== Wijk Status ===== */
 /* A wijk unlocks when ALL 3 buildings in the previous wijk are completed */
 function getLayerStatus(layerIndex, playerDataMap) {
@@ -542,9 +558,9 @@ function handleBuildingClick(buildingId, layerIndex) {
         return;
     }
 
-    getLayerStatusForCurrentPlayer(layerIndex).then(status => {
-        if (!status.unlocked) {
-            showToast('🔒 Maak eerst de huidige wijk af!');
+    getLayerStatusForCurrentPlayer(layerIndex).then(({ statuses }) => {
+        if (!isLayerAccessible(layerIndex, currentPlayer, statuses)) {
+            showToast('🔒 Bouw eerst een gebouw in de vorige wijk!');
             return;
         }
         selectBuildProject(buildingId);
@@ -556,7 +572,8 @@ async function getLayerStatusForCurrentPlayer(layerIndex) {
     for (const id of Object.keys(PLAYERS)) {
         playerDataMap[id] = await getPlayer(id);
     }
-    return getLayerStatus(layerIndex, playerDataMap);
+    const statuses = CITY_LAYERS.map((_, i) => getLayerStatus(i, playerDataMap));
+    return { ...statuses[layerIndex], statuses };
 }
 
 /* ===== Sky & Atmosphere ===== */

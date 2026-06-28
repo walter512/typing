@@ -278,7 +278,7 @@ async function openBuildMenu() {
         for (const building of layer.buildings) {
             const project = BUILDING_PROJECTS.find(p => p.id === building.id);
             if (!project) continue;
-            const isUnlocked = layerStatus.unlocked;
+            const accessible = isLayerAccessible(layerIdx, currentPlayer, layerStatuses);
 
             // Check current player's own status for this building
             const myRecord = currentPlayer.world.buildings.find(b => b.projectId === project.id);
@@ -294,8 +294,8 @@ async function openBuildMenu() {
                 return s.completed ? `✅ ${s.playerName}` : `${s.playerName} ${pct}%`;
             }).join(', ');
 
-            const canSelect = isUnlocked && !myComplete;
-            let stateClass = myComplete ? 'completed' : myInProgress ? 'in-progress' : !isUnlocked ? 'locked' : '';
+            const canSelect = accessible && !myComplete;
+            let stateClass = myComplete ? 'completed' : myInProgress ? 'in-progress' : !accessible ? 'locked' : '';
 
             list.innerHTML += `
                 <div class="build-project-card ${stateClass}" onclick="${canSelect ? `selectBuildProject('${project.id}')` : ''}">
@@ -306,7 +306,7 @@ async function openBuildMenu() {
                     ${myComplete ? '<div style="color:var(--green); font-size:9px; margin-top:4px">✅ Af!</div>' : ''}
                     ${myInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${myPct}%; background:${project.color}"></div></div>` : ''}
                     ${othersInfo ? `<div style="font-size:8px; color:var(--text-secondary); margin-top:4px">${othersInfo}</div>` : ''}
-                    ${!isUnlocked ? `<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Voltooi ${layerIdx > 0 ? CITY_LAYERS[layerIdx-1].name : ''} eerst</div>` : ''}
+                    ${!accessible ? `<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Bouw eerst een gebouw in ${layerIdx > 0 ? CITY_LAYERS[layerIdx-1].name : ''}</div>` : ''}
                 </div>
             `;
         }
