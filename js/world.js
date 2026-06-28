@@ -153,26 +153,50 @@ async function getAvailableProjects(player) {
         playerDataMap[id] = await getPlayer(id);
     }
 
-    // Determine which wijk this player should build in based on completed count
     const completedCount = player.world.buildings.filter(b => b.completed).length;
     const targetWijk = Math.floor(completedCount / BUILDINGS_PER_PLAYER_TO_ADVANCE);
+
+    // Max 2 buildings ahead of slowest player
+    const allCounts = Object.values(playerDataMap).map(p =>
+        p?.world?.buildings?.filter(b => b.completed).length || 0
+    );
+    const minCompleted = Math.min(...allCounts);
+    const maxAllowed = minCompleted + 2;
+    const atLimit = completedCount >= maxAllowed;
+
+    // Count how many this player already completed in each wijk
+    const completedPerWijk = {};
+    for (const bld of player.world.buildings) {
+        if (!bld.completed) continue;
+        for (let wi = 0; wi < CITY_LAYERS.length; wi++) {
+            if (CITY_LAYERS[wi].buildings.some(b => b.id === bld.projectId)) {
+                completedPerWijk[wi] = (completedPerWijk[wi] || 0) + 1;
+                break;
+            }
+        }
+    }
 
     const available = [];
     for (let i = 0; i < CITY_LAYERS.length; i++) {
         const layer = CITY_LAYERS[i];
+        const doneInWijk = completedPerWijk[i] || 0;
 
         for (const b of layer.buildings) {
             const myBld = player.world.buildings.find(x => x.projectId === b.id);
             if (myBld && myBld.completed) continue;
 
-            // Allow finishing already-started buildings in any wijk
+            // Allow finishing already-started buildings
             if (myBld && myBld.blocksPlaced > 0) {
                 const proj = BUILDING_PROJECTS.find(p => p.id === b.id);
                 if (proj) available.push(proj);
                 continue;
             }
 
-            // Only offer new buildings from the target wijk
+            // Don't offer new buildings if at the ahead-limit
+            if (atLimit) continue;
+            // Max 3 per wijk
+            if (doneInWijk >= BUILDINGS_PER_PLAYER_TO_ADVANCE) continue;
+            // Only from target wijk
             if (i !== targetWijk) continue;
             const proj = BUILDING_PROJECTS.find(p => p.id === b.id);
             if (proj) available.push(proj);

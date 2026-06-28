@@ -279,19 +279,28 @@ async function openBuildMenu() {
     const playerCompleted = currentPlayer.world.buildings.filter(b => b.completed).length;
     const playerTargetWijk = Math.floor(playerCompleted / BUILDINGS_PER_PLAYER_TO_ADVANCE);
 
+    // Max 2 buildings ahead of slowest player
+    const allCounts = Object.values(allPlayerData).map(p =>
+        p?.world?.buildings?.filter(b => b.completed).length || 0
+    );
+    const minCompleted = Math.min(...allCounts);
+    const maxAllowed = minCompleted + 2;
+    const atLimit = playerCompleted >= maxAllowed;
+
     for (let layerIdx = 0; layerIdx < CITY_LAYERS.length; layerIdx++) {
         const layer = CITY_LAYERS[layerIdx];
         const layerStatus = layerStatuses[layerIdx];
         const isTarget = layerIdx === playerTargetWijk;
         const needed = (layerIdx * BUILDINGS_PER_PLAYER_TO_ADVANCE) - playerCompleted;
-        list.innerHTML += `<div style="grid-column:1/-1; font-family:var(--font-mc); font-size:8px; color:var(--gold); padding:8px 0 4px; border-top: 1px solid #333; margin-top:8px">${layer.icon} ${layer.name} ${layerIdx > playerTargetWijk ? '🔒' : layerStatus.complete ? '✅' : isTarget ? '⛏️' : ''}</div>`;
+        const aheadMsg = atLimit ? ' ⏳ Wacht op anderen' : '';
+        list.innerHTML += `<div style="grid-column:1/-1; font-family:var(--font-mc); font-size:8px; color:var(--gold); padding:8px 0 4px; border-top: 1px solid #333; margin-top:8px">${layer.icon} ${layer.name} ${layerIdx > playerTargetWijk ? '🔒' : layerStatus.complete ? '✅' : isTarget ? '⛏️' + aheadMsg : ''}</div>`;
 
         for (const building of layer.buildings) {
             const project = BUILDING_PROJECTS.find(p => p.id === building.id);
             if (!project) continue;
             const myRecord = currentPlayer.world.buildings.find(b => b.projectId === project.id);
             const hasStartedHere = myRecord && myRecord.blocksPlaced > 0 && !myRecord.completed;
-            const accessible = layerIdx <= playerTargetWijk || hasStartedHere;
+            const accessible = (layerIdx <= playerTargetWijk && !atLimit) || hasStartedHere;
 
             const myComplete = myRecord && myRecord.completed;
             const myInProgress = myRecord && !myRecord.completed;
@@ -320,7 +329,8 @@ async function openBuildMenu() {
                     ${myInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${myPct}%; background:${project.color}"></div></div>` : ''}
                     ${canCancel ? `<button class="btn-cancel-build" onclick="event.stopPropagation(); cancelBuildProject('${project.id}')">✕ Annuleer</button>` : ''}
                     ${othersInfo ? `<div style="font-size:8px; color:var(--text-secondary); margin-top:4px">${othersInfo}</div>` : ''}
-                    ${!accessible ? `<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Bouw eerst ${needed > 0 ? needed : ''} gebouw${needed > 1 ? 'en' : ''} af</div>` : ''}
+                    ${!accessible && atLimit ? `<div style="color:var(--gold); font-size:8px; margin-top:4px">⏳ Wacht tot anderen ook bouwen</div>` : ''}
+                    ${!accessible && !atLimit ? `<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Bouw eerst ${needed > 0 ? needed : ''} gebouw${needed > 1 ? 'en' : ''} af</div>` : ''}
                 </div>
             `;
         }
