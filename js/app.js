@@ -41,16 +41,6 @@ async function selectProfile(playerId) {
         currentPlayer.resources[res] = (currentPlayer.resources[res] || 0) + amount;
     }
 
-    // Normalize: completed buildings must have blocksPlaced >= blocksNeeded
-    for (const bld of currentPlayer.world.buildings) {
-        if (bld.completed) {
-            const proj = BUILDING_PROJECTS.find(p => p.id === bld.projectId);
-            if (proj && bld.blocksPlaced < proj.blocksNeeded) {
-                bld.blocksPlaced = proj.blocksNeeded;
-            }
-        }
-    }
-
     // Clear active project if it's already completed
     if (currentPlayer.world.activeProject) {
         const bld = currentPlayer.world.buildings.find(b => b.projectId === currentPlayer.world.activeProject);

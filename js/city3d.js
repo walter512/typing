@@ -90,7 +90,7 @@ const CITY_LAYERS = [
                 id: 'houten_hut',
                 name: 'Houten Hut',
                 icon: '🏠',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     [null,null,null,'chimney',null,null,null,null],
@@ -107,7 +107,7 @@ const CITY_LAYERS = [
                 id: 'werkplaats',
                 name: 'Werkplaats',
                 icon: '🔨',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     [null,null,'torch',null,null,null,null],
@@ -123,7 +123,7 @@ const CITY_LAYERS = [
                 id: 'boerderij',
                 name: 'Boerderij',
                 icon: '🌾',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     [null,null,'roof_oak','roof_oak','roof_oak',null,null,null,null],
@@ -139,7 +139,7 @@ const CITY_LAYERS = [
                 id: 'waterput',
                 name: 'Waterput',
                 icon: '🪣',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     [null,null,'roof_oak',null,null],
@@ -153,7 +153,7 @@ const CITY_LAYERS = [
                 id: 'pad',
                 name: 'Pad',
                 icon: '🛤️',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     ['torch',null,null,null,null,null,'torch'],
@@ -167,7 +167,7 @@ const CITY_LAYERS = [
                 id: 'uitkijktoren',
                 name: 'Uitkijktoren',
                 icon: '🗼',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     [null,'torch',null],
@@ -184,7 +184,7 @@ const CITY_LAYERS = [
                 id: 'kampvuur',
                 name: 'Kampvuur',
                 icon: '🔥',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     [null,null,'torch',null,null],
@@ -207,7 +207,7 @@ const CITY_LAYERS = [
                 id: 'stenen_huis',
                 name: 'Stenen Huis',
                 icon: '🏠',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     [null,null,null,null,'chimney',null,null,null,null],
@@ -224,7 +224,7 @@ const CITY_LAYERS = [
                 id: 'smederij',
                 name: 'Smederij',
                 icon: '⚒️',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     [null,null,null,'chimney','chimney',null,null,null],
@@ -240,7 +240,7 @@ const CITY_LAYERS = [
                 id: 'bibliotheek',
                 name: 'Bibliotheek',
                 icon: '📚',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     [null,'roof_oak','roof_oak','roof_oak','roof_oak','roof_oak','roof_oak',null],
@@ -255,7 +255,7 @@ const CITY_LAYERS = [
                 id: 'bakkerij',
                 name: 'Bakkerij',
                 icon: '🍞',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     [null,null,null,null,null,null,'chimney',null],
@@ -271,7 +271,7 @@ const CITY_LAYERS = [
                 id: 'brug',
                 name: 'Brug',
                 icon: '🌉',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     ['stone_brick',null,null,null,null,null,'stone_brick'],
@@ -285,7 +285,7 @@ const CITY_LAYERS = [
                 id: 'dorps_waterput',
                 name: 'Waterput',
                 icon: '⛲',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     [null,null,'roof_stone',null,null],
@@ -299,7 +299,7 @@ const CITY_LAYERS = [
                 id: 'tuin',
                 name: 'Tuin',
                 icon: '🌷',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     [null,'flower_r',null,'flower_y',null,'flower_r',null],
@@ -322,7 +322,7 @@ const CITY_LAYERS = [
                 id: 'markthal',
                 name: 'Markthal',
                 icon: '🏪',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     [null,null,'flag_red',null,null,null,'flag_blue',null,null],
@@ -338,7 +338,7 @@ const CITY_LAYERS = [
                 id: 'wachttoren',
                 name: 'Wachttoren',
                 icon: '🗼',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     [null,null,'torch',null,null],
@@ -356,7 +356,7 @@ const CITY_LAYERS = [
                 id: 'mijnschacht',
                 name: 'Mijnschacht',
                 icon: '⛏️',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     ['oak_log','oak_planks','torch','oak_planks','torch','oak_planks','oak_log'],
@@ -371,7 +371,7 @@ const CITY_LAYERS = [
                 id: 'herberg',
                 name: 'Herberg',
                 icon: '🍺',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     [null,null,'chimney',null,null,null,null,null,null],
@@ -387,7 +387,7 @@ const CITY_LAYERS = [
                 id: 'stadsmuur',
                 name: 'Stadsmuur',
                 icon: '🧱',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     ['stone_brick',null,'stone_brick',null,'stone_brick',null,'stone_brick'],
@@ -402,7 +402,7 @@ const CITY_LAYERS = [
                 id: 'paardstal',
                 name: 'Paardstal',
                 icon: '🐴',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     [null,'roof_oak','roof_oak','roof_oak','roof_oak','roof_oak','roof_oak',null],
@@ -417,7 +417,7 @@ const CITY_LAYERS = [
                 id: 'fontein',
                 name: 'Fontein',
                 icon: '⛲',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     [null,null,null,'water',null,null,null],
@@ -441,7 +441,7 @@ const CITY_LAYERS = [
                 id: 'kasteel',
                 name: 'Kasteel',
                 icon: '🏰',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     ['stone_brick',null,null,null,'flag_red',null,null,null,'stone_brick'],
@@ -458,7 +458,7 @@ const CITY_LAYERS = [
                 id: 'nether_portaal',
                 name: 'Nether Portaal',
                 icon: '🟣',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     [null,null,'obsidian','obsidian','obsidian','obsidian',null,null],
@@ -475,7 +475,7 @@ const CITY_LAYERS = [
                 id: 'tovenaarstoren',
                 name: 'Tovenaarstoren',
                 icon: '🧙',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     [null,null,'diamond_block',null,null],
@@ -494,7 +494,7 @@ const CITY_LAYERS = [
                 id: 'troonzaal',
                 name: 'Troonzaal',
                 icon: '👑',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     [null,null,null,null,'gold_block',null,null,null,null],
@@ -511,7 +511,7 @@ const CITY_LAYERS = [
                 id: 'wapenarsenaal',
                 name: 'Wapenarsenaal',
                 icon: '⚔️',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     [null,'roof_stone','roof_stone','roof_stone','roof_stone','roof_stone',null],
@@ -526,7 +526,7 @@ const CITY_LAYERS = [
                 id: 'kerker',
                 name: 'Kerker',
                 icon: '⛓️',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     ['stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d'],
@@ -541,7 +541,7 @@ const CITY_LAYERS = [
                 id: 'vuurwachttoren',
                 name: 'Vuurwachttoren',
                 icon: '🔥',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     [null,null,'lava_bright',null,null],
@@ -568,7 +568,7 @@ const CITY_LAYERS = [
                 id: 'end_toren',
                 name: 'End Toren',
                 icon: '🗽',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,null,'beacon_light',null,null],
@@ -588,7 +588,7 @@ const CITY_LAYERS = [
                 id: 'drakentroon',
                 name: 'Drakentroon',
                 icon: '🐉',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,null,null,'glowstone',null,null,null],
@@ -604,7 +604,7 @@ const CITY_LAYERS = [
                 id: 'beacon',
                 name: 'Beacon',
                 icon: '💎',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,null,'beacon_light',null,null],
@@ -621,7 +621,7 @@ const CITY_LAYERS = [
                 id: 'kristalgrot',
                 name: 'Kristalgrot',
                 icon: '💎',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,'stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d','stone_brick_d',null],
@@ -636,7 +636,7 @@ const CITY_LAYERS = [
                 id: 'hemelpoort',
                 name: 'Hemelpoort',
                 icon: '🌀',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,null,'beacon_light',null,null],
@@ -653,7 +653,7 @@ const CITY_LAYERS = [
                 id: 'drakennest',
                 name: 'Drakennest',
                 icon: '🥚',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,null,null,'glowstone',null,null,null],
@@ -668,7 +668,7 @@ const CITY_LAYERS = [
                 id: 'ender_altaar',
                 name: 'Ender Altaar',
                 icon: '🔮',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,null,'glowstone',null,null],
@@ -987,8 +987,8 @@ async function renderCity(containerId) {
         for (const building of activeLayer.buildings) {
             const bld = pd?.world?.buildings?.find(b => b.projectId === building.id);
             if (!bld) continue;
+            const blocksPlaced = bld.blocksPlaced || 0;
             const isCompleted = bld.completed;
-            const blocksPlaced = isCompleted ? Math.max(bld.blocksPlaced || 0, building.blocksNeeded) : (bld.blocksPlaced || 0);
             const pct = Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100));
             const clickable = isCurrentPlayer && !isCompleted;
 
