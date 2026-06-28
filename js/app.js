@@ -1502,9 +1502,6 @@ function showParentTab(tab) {
 async function initApp() {
     try {
         for (const id of Object.keys(PLAYERS)) {
-            await initPlayerData(id);
-        }
-        for (const id of Object.keys(PLAYERS)) {
             const player = await getPlayer(id);
             if (player) {
                 const levelEl = document.getElementById(`level-${id}`);
