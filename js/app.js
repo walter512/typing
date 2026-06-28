@@ -41,10 +41,17 @@ async function selectProfile(playerId) {
     // Check for daily login
     const loginResult = checkDailyLogin(currentPlayer);
 
-    // Collect passive resources
-    const passive = calculatePassiveResources(currentPlayer);
-    for (const [res, amount] of Object.entries(passive)) {
-        currentPlayer.resources[res] = (currentPlayer.resources[res] || 0) + amount;
+    // Collect passive resources (max once per 30 minutes)
+    const now = Date.now();
+    const lastCollect = currentPlayer.world.lastPassiveCollect || 0;
+    const minutesSinceCollect = (now - lastCollect) / (1000 * 60);
+    let passive = {};
+    if (minutesSinceCollect >= 30) {
+        passive = calculatePassiveResources(currentPlayer);
+        for (const [res, amount] of Object.entries(passive)) {
+            currentPlayer.resources[res] = (currentPlayer.resources[res] || 0) + amount;
+        }
+        currentPlayer.world.lastPassiveCollect = now;
     }
 
     // Clear active project if it's already completed
