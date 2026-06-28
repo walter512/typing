@@ -695,9 +695,7 @@ function triggerRandomEvent(event) {
 
 /* ===== Typing Input Handler ===== */
 
-document.addEventListener('DOMContentLoaded', async () => {
-    await migrateFromIndexedDB();
-
+document.addEventListener('DOMContentLoaded', () => {
     addFloatingItems();
 
     const input = document.getElementById('typing-input');

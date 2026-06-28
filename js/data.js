@@ -2,9 +2,6 @@
 
 const API_URL = 'api.php';
 
-const DB_NAME = 'typecraft';
-const DB_VERSION = 1;
-
 const PLAYERS = {
     sebas: { name: 'Sebas', age: 13, sessionMinutes: 20, handicap: 1.0 },
     jonathan: { name: 'Jonathan', age: 11, sessionMinutes: 15, handicap: 1.3 },
@@ -129,68 +126,6 @@ async function getAllSessions() {
     return await res.json();
 }
 
-/* ===== IndexedDB (alleen voor migratie) ===== */
-
-let db = null;
-
-function openDB() {
-    return new Promise((resolve, reject) => {
-        if (db) { resolve(db); return; }
-        if (!window.indexedDB) { resolve(null); return; }
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = (e) => {
-            const d = e.target.result;
-            if (!d.objectStoreNames.contains('players')) d.createObjectStore('players', { keyPath: 'id' });
-            if (!d.objectStoreNames.contains('sessions')) {
-                const s = d.createObjectStore('sessions', { keyPath: 'id', autoIncrement: true });
-                s.createIndex('player', 'playerId');
-                s.createIndex('date', 'date');
-            }
-            if (!d.objectStoreNames.contains('settings')) d.createObjectStore('settings', { keyPath: 'key' });
-        };
-        req.onsuccess = (e) => { db = e.target.result; resolve(db); };
-        req.onerror = () => resolve(null);
-    });
-}
-
-async function migrateFromIndexedDB() {
-    const d = await openDB();
-    if (!d) return;
-
-    try {
-        const tx = d.transaction('players', 'readonly');
-        const players = await new Promise((resolve) => {
-            const req = tx.objectStore('players').getAll();
-            req.onsuccess = () => resolve(req.result || []);
-            req.onerror = () => resolve([]);
-        });
-
-        if (players.length === 0) return;
-
-        const serverPlayers = await getAllPlayers();
-        const serverHasData = serverPlayers.length > 0;
-        if (serverHasData) return;
-
-        for (const player of players) {
-            await savePlayer(player);
-        }
-
-        const stx = d.transaction('sessions', 'readonly');
-        const sessions = await new Promise((resolve) => {
-            const req = stx.objectStore('sessions').getAll();
-            req.onsuccess = () => resolve(req.result || []);
-            req.onerror = () => resolve([]);
-        });
-        for (const session of sessions) {
-            delete session.id;
-            await saveSession(session);
-        }
-
-        console.log(`Migratie voltooid: ${players.length} spelers, ${sessions.length} sessies`);
-    } catch (e) {
-        console.warn('Migratie overgeslagen:', e);
-    }
-}
 
 /* ===== Initialize default player data ===== */
 async function initPlayerData(id) {
