@@ -725,17 +725,14 @@ function isLayerAccessible(layerIndex, player, layerStatuses) {
     const layer = CITY_LAYERS[layerIndex];
     const hasStarted = layer.buildings.some(b => {
         const bld = player?.world?.buildings?.find(x => x.projectId === b.id);
-        return bld && !bld.completed;
+        return bld && !bld.completed && bld.blocksPlaced > 0;
     });
     if (hasStarted) return true;
 
-    const prevLayer = CITY_LAYERS[layerIndex - 1];
-    let playerDoneCount = 0;
-    for (const b of prevLayer.buildings) {
-        const bld = player?.world?.buildings?.find(x => x.projectId === b.id);
-        if (bld && bld.completed) playerDoneCount++;
-    }
-    return playerDoneCount >= BUILDINGS_PER_PLAYER_TO_ADVANCE;
+    // Player's target wijk based on total completed buildings
+    const completedCount = player?.world?.buildings?.filter(b => b.completed).length || 0;
+    const targetWijk = Math.floor(completedCount / BUILDINGS_PER_PLAYER_TO_ADVANCE);
+    return layerIndex <= targetWijk;
 }
 
 /* ===== Wijk Status ===== */

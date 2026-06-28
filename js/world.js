@@ -153,30 +153,27 @@ async function getAvailableProjects(player) {
         playerDataMap[id] = await getPlayer(id);
     }
 
-    const layerStatuses = CITY_LAYERS.map((_, i) => getLayerStatus(i, playerDataMap));
+    // Determine which wijk this player should build in based on completed count
+    const completedCount = player.world.buildings.filter(b => b.completed).length;
+    const targetWijk = Math.floor(completedCount / BUILDINGS_PER_PLAYER_TO_ADVANCE);
+
     const available = [];
     for (let i = 0; i < CITY_LAYERS.length; i++) {
-        if (!isLayerAccessible(i, player, layerStatuses)) continue;
-
         const layer = CITY_LAYERS[i];
-
-        // Check if player earned full access (3 buildings done in prev wijk)
-        let fullAccess = (i === 0);
-        if (i > 0) {
-            const prevLayer = CITY_LAYERS[i - 1];
-            let doneCount = 0;
-            for (const b of prevLayer.buildings) {
-                const bld = player?.world?.buildings?.find(x => x.projectId === b.id);
-                if (bld && bld.completed) doneCount++;
-            }
-            fullAccess = doneCount >= BUILDINGS_PER_PLAYER_TO_ADVANCE;
-        }
 
         for (const b of layer.buildings) {
             const myBld = player.world.buildings.find(x => x.projectId === b.id);
             if (myBld && myBld.completed) continue;
-            // In higher wijken without full access: only show already-started buildings
-            if (!fullAccess && (!myBld || myBld.blocksPlaced === 0)) continue;
+
+            // Allow finishing already-started buildings in any wijk
+            if (myBld && myBld.blocksPlaced > 0) {
+                const proj = BUILDING_PROJECTS.find(p => p.id === b.id);
+                if (proj) available.push(proj);
+                continue;
+            }
+
+            // Only offer new buildings from the target wijk
+            if (i !== targetWijk) continue;
             const proj = BUILDING_PROJECTS.find(p => p.id === b.id);
             if (proj) available.push(proj);
         }

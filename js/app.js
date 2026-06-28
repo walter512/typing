@@ -276,15 +276,22 @@ async function openBuildMenu() {
     const list = document.getElementById('build-projects-list');
     list.innerHTML = '';
 
+    const playerCompleted = currentPlayer.world.buildings.filter(b => b.completed).length;
+    const playerTargetWijk = Math.floor(playerCompleted / BUILDINGS_PER_PLAYER_TO_ADVANCE);
+
     for (let layerIdx = 0; layerIdx < CITY_LAYERS.length; layerIdx++) {
         const layer = CITY_LAYERS[layerIdx];
         const layerStatus = layerStatuses[layerIdx];
-        list.innerHTML += `<div style="grid-column:1/-1; font-family:var(--font-mc); font-size:8px; color:var(--gold); padding:8px 0 4px; border-top: 1px solid #333; margin-top:8px">${layer.icon} ${layer.name} ${!layerStatus.unlocked ? '🔒' : layerStatus.complete ? '✅' : ''}</div>`;
+        const isTarget = layerIdx === playerTargetWijk;
+        const needed = (layerIdx * BUILDINGS_PER_PLAYER_TO_ADVANCE) - playerCompleted;
+        list.innerHTML += `<div style="grid-column:1/-1; font-family:var(--font-mc); font-size:8px; color:var(--gold); padding:8px 0 4px; border-top: 1px solid #333; margin-top:8px">${layer.icon} ${layer.name} ${layerIdx > playerTargetWijk ? '🔒' : layerStatus.complete ? '✅' : isTarget ? '⛏️' : ''}</div>`;
 
         for (const building of layer.buildings) {
             const project = BUILDING_PROJECTS.find(p => p.id === building.id);
             if (!project) continue;
-            const accessible = isLayerAccessible(layerIdx, currentPlayer, layerStatuses);
+            const myRecord = currentPlayer.world.buildings.find(b => b.projectId === project.id);
+            const hasStartedHere = myRecord && myRecord.blocksPlaced > 0 && !myRecord.completed;
+            const accessible = layerIdx <= playerTargetWijk || hasStartedHere;
 
             // Check current player's own status for this building
             const myRecord = currentPlayer.world.buildings.find(b => b.projectId === project.id);
@@ -315,7 +322,7 @@ async function openBuildMenu() {
                     ${myInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${myPct}%; background:${project.color}"></div></div>` : ''}
                     ${canCancel ? `<button class="btn-cancel-build" onclick="event.stopPropagation(); cancelBuildProject('${project.id}')">✕ Annuleer</button>` : ''}
                     ${othersInfo ? `<div style="font-size:8px; color:var(--text-secondary); margin-top:4px">${othersInfo}</div>` : ''}
-                    ${!accessible ? `<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Bouw eerst een gebouw in ${layerIdx > 0 ? CITY_LAYERS[layerIdx-1].name : ''}</div>` : ''}
+                    ${!accessible ? `<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Bouw eerst ${needed > 0 ? needed : ''} gebouw${needed > 1 ? 'en' : ''} af</div>` : ''}
                 </div>
             `;
         }
