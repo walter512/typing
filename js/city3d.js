@@ -987,8 +987,8 @@ async function renderCity(containerId) {
         for (const building of activeLayer.buildings) {
             const bld = pd?.world?.buildings?.find(b => b.projectId === building.id);
             if (!bld) continue;
-            const blocksPlaced = bld.blocksPlaced || 0;
             const isCompleted = bld.completed;
+            const blocksPlaced = isCompleted ? Math.max(bld.blocksPlaced || 0, building.blocksNeeded) : (bld.blocksPlaced || 0);
             const pct = Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100));
             const clickable = isCurrentPlayer && !isCompleted;
 

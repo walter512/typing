@@ -175,10 +175,11 @@ function getBuildingProgress(player, projectId) {
     if (!building) return null;
     const project = BUILDING_PROJECTS.find(p => p.id === projectId);
     if (!project) return null;
+    const effectiveBlocks = building.completed ? Math.max(building.blocksPlaced, project.blocksNeeded) : building.blocksPlaced;
     return {
         ...building,
         project,
-        percentage: Math.round((building.blocksPlaced / project.blocksNeeded) * 100)
+        percentage: Math.round((effectiveBlocks / project.blocksNeeded) * 100)
     };
 }
 
