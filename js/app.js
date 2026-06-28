@@ -297,6 +297,8 @@ async function openBuildMenu() {
             const canSelect = accessible && !myComplete;
             let stateClass = myComplete ? 'completed' : myInProgress ? 'in-progress' : !accessible ? 'locked' : '';
 
+            const canCancel = isActive && myRecord && myRecord.blocksPlaced === 0;
+
             list.innerHTML += `
                 <div class="build-project-card ${stateClass}" onclick="${canSelect ? `selectBuildProject('${project.id}')` : ''}">
                     <div class="build-card-icon">${project.icon}</div>
@@ -305,6 +307,7 @@ async function openBuildMenu() {
                     <div class="build-card-cost">${project.blocksNeeded} blokken nodig</div>
                     ${myComplete ? '<div style="color:var(--green); font-size:9px; margin-top:4px">✅ Af!</div>' : ''}
                     ${myInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${myPct}%; background:${project.color}"></div></div>` : ''}
+                    ${canCancel ? `<button class="btn-cancel-build" onclick="event.stopPropagation(); cancelBuildProject('${project.id}')">✕ Annuleer</button>` : ''}
                     ${othersInfo ? `<div style="font-size:8px; color:var(--text-secondary); margin-top:4px">${othersInfo}</div>` : ''}
                     ${!accessible ? `<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Bouw eerst een gebouw in ${layerIdx > 0 ? CITY_LAYERS[layerIdx-1].name : ''}</div>` : ''}
                 </div>
@@ -332,6 +335,19 @@ async function selectBuildProject(projectId) {
 
     const project = BUILDING_PROJECTS.find(p => p.id === projectId);
     showToast(`⛏️ Bouwproject: ${project.name}`);
+}
+
+async function cancelBuildProject(projectId) {
+    const bld = currentPlayer.world.buildings.find(b => b.projectId === projectId);
+    if (bld && bld.blocksPlaced > 0) return;
+    currentPlayer.world.buildings = currentPlayer.world.buildings.filter(b => b.projectId !== projectId);
+    if (currentPlayer.world.activeProject === projectId) {
+        currentPlayer.world.activeProject = null;
+    }
+    await savePlayer(currentPlayer);
+    updateWorldScreen();
+    openBuildMenu();
+    showToast('Gebouw geannuleerd');
 }
 
 /* ===== Start Building (typing session) ===== */

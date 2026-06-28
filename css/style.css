@@ -854,6 +854,8 @@ body {
     margin-top: 8px;
 }
 .build-card-progress-fill { height: 100%; transition: width 0.3s; }
+.btn-cancel-build { background: var(--red, #b71c1c); color: #fff; border: none; font-family: var(--font-mc); font-size: 8px; padding: 4px 8px; margin-top: 6px; cursor: pointer; border-radius: 3px; }
+.btn-cancel-build:hover { opacity: 0.8; }
 
 /* ===== Event Popup ===== */
 .event-popup {
