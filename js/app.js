@@ -41,15 +41,11 @@ async function selectProfile(playerId) {
         currentPlayer.resources[res] = (currentPlayer.resources[res] || 0) + amount;
     }
 
-    // Default active project if none set
-    if (!currentPlayer.world.activeProject) {
-        const available = await getAvailableProjects(currentPlayer);
-        if (available.length > 0) {
-            const proj = available[0];
-            currentPlayer.world.activeProject = proj.id;
-            if (!currentPlayer.world.buildings.find(b => b.projectId === proj.id)) {
-                currentPlayer.world.buildings.push({ projectId: proj.id, blocksPlaced: 0, completed: false });
-            }
+    // Clear active project if it's already completed
+    if (currentPlayer.world.activeProject) {
+        const bld = currentPlayer.world.buildings.find(b => b.projectId === currentPlayer.world.activeProject);
+        if (bld && bld.completed) {
+            currentPlayer.world.activeProject = null;
         }
     }
 
@@ -253,24 +249,27 @@ async function openBuildMenu() {
     popup.style.display = 'flex';
     soundButtonClick();
 
-    // Gather all player data for claims and layer status checks
+    // Gather all player data for cross-player visibility
     const allPlayerData = {};
-    const claimedBy = {};
     for (const [id, info] of Object.entries(PLAYERS)) {
-        const p = await getPlayer(id);
-        allPlayerData[id] = p;
-        if (p && p.world && p.world.buildings) {
-            for (const b of p.world.buildings) {
-                claimedBy[b.projectId] = { ...b, playerName: info.name, playerId: id };
-            }
-        }
+        allPlayerData[id] = await getPlayer(id);
     }
     const layerStatuses = CITY_LAYERS.map((_, i) => getLayerStatus(i, allPlayerData));
+
+    // Build per-building status across ALL players
+    const buildingStatus = {};
+    for (const [id, info] of Object.entries(PLAYERS)) {
+        const p = allPlayerData[id];
+        if (!p?.world?.buildings) continue;
+        for (const b of p.world.buildings) {
+            if (!buildingStatus[b.projectId]) buildingStatus[b.projectId] = [];
+            buildingStatus[b.projectId].push({ ...b, playerName: info.name, playerId: id });
+        }
+    }
 
     const list = document.getElementById('build-projects-list');
     list.innerHTML = '';
 
-    // Group by layer for display
     for (let layerIdx = 0; layerIdx < CITY_LAYERS.length; layerIdx++) {
         const layer = CITY_LAYERS[layerIdx];
         const layerStatus = layerStatuses[layerIdx];
@@ -280,16 +279,23 @@ async function openBuildMenu() {
             const project = BUILDING_PROJECTS.find(p => p.id === building.id);
             if (!project) continue;
             const isUnlocked = layerStatus.unlocked;
-            const claim = claimedBy[project.id];
-            const isOwn = claim && claim.playerId === currentPlayer.id;
-            const isOther = claim && claim.playerId !== currentPlayer.id;
-            const isComplete = claim && claim.completed;
-            const isInProgress = claim && !claim.completed;
-            const pct = claim ? Math.round((claim.blocksPlaced / project.blocksNeeded) * 100) : 0;
-            const isActive = currentPlayer.world.activeProject === project.id;
-            const canSelect = isUnlocked && !isComplete && !isOther;
 
-            let stateClass = isComplete ? 'completed' : isInProgress ? 'in-progress' : !isUnlocked ? 'locked' : isOther ? 'locked' : '';
+            // Check current player's own status for this building
+            const myRecord = currentPlayer.world.buildings.find(b => b.projectId === project.id);
+            const myComplete = myRecord && myRecord.completed;
+            const myInProgress = myRecord && !myRecord.completed;
+            const myPct = myRecord ? Math.round((myRecord.blocksPlaced / project.blocksNeeded) * 100) : 0;
+            const isActive = currentPlayer.world.activeProject === project.id;
+
+            // Other players' progress on this building
+            const others = (buildingStatus[project.id] || []).filter(s => s.playerId !== currentPlayer.id);
+            const othersInfo = others.map(s => {
+                const pct = Math.round((s.blocksPlaced / project.blocksNeeded) * 100);
+                return s.completed ? `✅ ${s.playerName}` : `${s.playerName} ${pct}%`;
+            }).join(', ');
+
+            const canSelect = isUnlocked && !myComplete;
+            let stateClass = myComplete ? 'completed' : myInProgress ? 'in-progress' : !isUnlocked ? 'locked' : '';
 
             list.innerHTML += `
                 <div class="build-project-card ${stateClass}" onclick="${canSelect ? `selectBuildProject('${project.id}')` : ''}">
@@ -297,9 +303,9 @@ async function openBuildMenu() {
                     <div class="build-card-name">${project.name} ${isActive ? '⛏️' : ''}</div>
                     <div class="build-card-desc">${project.desc}</div>
                     <div class="build-card-cost">${project.blocksNeeded} blokken nodig</div>
-                    ${isComplete ? `<div style="color:var(--green); font-size:9px; margin-top:4px">✅ Gebouwd door ${claim.playerName}</div>` : ''}
-                    ${isOther && !isComplete ? `<div style="color:var(--gold); font-size:9px; margin-top:4px">⛏️ ${claim.playerName} bouwt hieraan (${pct}%)</div>` : ''}
-                    ${isOwn && isInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${pct}%; background:${project.color}"></div></div>` : ''}
+                    ${myComplete ? '<div style="color:var(--green); font-size:9px; margin-top:4px">✅ Af!</div>' : ''}
+                    ${myInProgress ? `<div class="build-card-progress"><div class="build-card-progress-fill" style="width:${myPct}%; background:${project.color}"></div></div>` : ''}
+                    ${othersInfo ? `<div style="font-size:8px; color:var(--text-secondary); margin-top:4px">${othersInfo}</div>` : ''}
                     ${!isUnlocked ? `<div style="color:var(--red); font-size:8px; margin-top:4px">🔒 Voltooi ${layerIdx > 0 ? CITY_LAYERS[layerIdx-1].name : ''} eerst</div>` : ''}
                 </div>
             `;
@@ -1117,9 +1123,11 @@ function showResults(stats, xpGained, newAchievements, leveledUp) {
     if (btnDiv) {
         const building = currentProject ? currentPlayer.world.buildings.find(b => b.projectId === currentProject.id) : null;
         if (building && building.completed) {
-            // Building is done — show celebration, go back to village
+            currentPlayer.world.activeProject = null;
+            savePlayer(currentPlayer);
             btnDiv.innerHTML = `
-                <button class="btn-minecraft btn-primary" onclick="showScreen('screen-world'); updateWorldScreen();">🏘️ Bekijk je Dorp!</button>
+                <button class="btn-minecraft btn-primary" onclick="openBuildMenu()">⛏ Kies nieuw gebouw!</button>
+                <button class="btn-minecraft" onclick="showScreen('screen-world'); updateWorldScreen();">🏘️ Bekijk je Dorp!</button>
             `;
         } else {
             // Building still in progress — continue or go back

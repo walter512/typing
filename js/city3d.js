@@ -90,7 +90,7 @@ const CITY_LAYERS = [
                 id: 'houten_hut',
                 name: 'Houten Hut',
                 icon: '🏠',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     [null,null,null,'chimney',null,null,null,null],
@@ -107,7 +107,7 @@ const CITY_LAYERS = [
                 id: 'werkplaats',
                 name: 'Werkplaats',
                 icon: '🔨',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     [null,null,'torch',null,null,null,null],
@@ -123,7 +123,7 @@ const CITY_LAYERS = [
                 id: 'boerderij',
                 name: 'Boerderij',
                 icon: '🌾',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'hout',
                 grid: [
                     [null,null,'roof_oak','roof_oak','roof_oak',null,null,null,null],
@@ -148,7 +148,7 @@ const CITY_LAYERS = [
                 id: 'stenen_huis',
                 name: 'Stenen Huis',
                 icon: '🏠',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     [null,null,null,null,'chimney',null,null,null,null],
@@ -165,7 +165,7 @@ const CITY_LAYERS = [
                 id: 'smederij',
                 name: 'Smederij',
                 icon: '⚒️',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     [null,null,null,'chimney','chimney',null,null,null],
@@ -181,7 +181,7 @@ const CITY_LAYERS = [
                 id: 'bibliotheek',
                 name: 'Bibliotheek',
                 icon: '📚',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'steen',
                 grid: [
                     [null,'roof_oak','roof_oak','roof_oak','roof_oak','roof_oak','roof_oak',null],
@@ -205,7 +205,7 @@ const CITY_LAYERS = [
                 id: 'markthal',
                 name: 'Markthal',
                 icon: '🏪',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     [null,null,'flag_red',null,null,null,'flag_blue',null,null],
@@ -221,7 +221,7 @@ const CITY_LAYERS = [
                 id: 'wachttoren',
                 name: 'Wachttoren',
                 icon: '🗼',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     [null,null,'torch',null,null],
@@ -239,7 +239,7 @@ const CITY_LAYERS = [
                 id: 'mijnschacht',
                 name: 'Mijnschacht',
                 icon: '⛏️',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'ijzer',
                 grid: [
                     ['oak_log','oak_planks','torch','oak_planks','torch','oak_planks','oak_log'],
@@ -263,7 +263,7 @@ const CITY_LAYERS = [
                 id: 'kasteel',
                 name: 'Kasteel',
                 icon: '🏰',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     ['stone_brick',null,null,null,'flag_red',null,null,null,'stone_brick'],
@@ -280,7 +280,7 @@ const CITY_LAYERS = [
                 id: 'nether_portaal',
                 name: 'Nether Portaal',
                 icon: '🟣',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     [null,null,'obsidian','obsidian','obsidian','obsidian',null,null],
@@ -297,7 +297,7 @@ const CITY_LAYERS = [
                 id: 'tovenaarstoren',
                 name: 'Tovenaarstoren',
                 icon: '🧙',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'goud',
                 grid: [
                     [null,null,'diamond_block',null,null],
@@ -325,7 +325,7 @@ const CITY_LAYERS = [
                 id: 'end_toren',
                 name: 'End Toren',
                 icon: '🗽',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,null,'beacon_light',null,null],
@@ -345,7 +345,7 @@ const CITY_LAYERS = [
                 id: 'drakentroon',
                 name: 'Drakentroon',
                 icon: '🐉',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,null,null,'glowstone',null,null,null],
@@ -361,7 +361,7 @@ const CITY_LAYERS = [
                 id: 'beacon',
                 name: 'Beacon',
                 icon: '💎',
-                blocksNeeded: 20,
+                blocksNeeded: 16,
                 material: 'diamant',
                 grid: [
                     [null,null,'beacon_light',null,null],
@@ -431,24 +431,25 @@ function getLayerStatus(layerIndex, playerDataMap) {
         unlocked = allPrevDone;
     }
 
-    // Build claims map
+    // Build claims map — each building can have multiple players
     const claims = {};
     for (const [playerId, playerData] of Object.entries(playerDataMap)) {
         if (!playerData?.world?.buildings) continue;
         for (const b of layer.buildings) {
             const building = playerData.world.buildings.find(bld => bld.projectId === b.id);
             if (building) {
-                claims[b.id] = {
+                if (!claims[b.id]) claims[b.id] = [];
+                claims[b.id].push({
                     playerId,
                     playerName: playerData.name || playerId,
                     blocksPlaced: building.blocksPlaced || 0,
                     completed: building.completed || false,
-                };
+                });
             }
         }
     }
 
-    const complete = layer.buildings.every(b => claims[b.id] && claims[b.id].completed);
+    const complete = layer.buildings.every(b => claims[b.id] && claims[b.id].some(c => c.completed));
     return { unlocked, complete, claims };
 }
 
@@ -544,10 +545,6 @@ function handleBuildingClick(buildingId, layerIndex) {
     getLayerStatusForCurrentPlayer(layerIndex).then(status => {
         if (!status.unlocked) {
             showToast('🔒 Maak eerst de huidige wijk af!');
-            return;
-        }
-        if (status.claims[buildingId] && status.claims[buildingId].playerId !== currentPlayer.id) {
-            showToast(`⛏️ ${status.claims[buildingId].playerName} bouwt dit al!`);
             return;
         }
         selectBuildProject(buildingId);
@@ -656,42 +653,41 @@ async function renderCity(containerId) {
             }
         }
 
-        // Current wijk: show the building this player is working on or can pick
+        // Current wijk: show ALL buildings this player has worked on
         const activeBuilding = pd?.world?.activeProject;
-        let shownActive = false;
+        let hasBuildings = false;
 
         for (const building of activeLayer.buildings) {
             const bld = pd?.world?.buildings?.find(b => b.projectId === building.id);
             if (!bld) continue;
             const blocksPlaced = bld.blocksPlaced || 0;
             const isCompleted = bld.completed;
+            const pct = Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100));
+            const clickable = isCurrentPlayer && !isCompleted;
 
-            if (isCompleted || activeBuilding === building.id) {
-                const pct = Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100));
-                const clickable = isCurrentPlayer && !isCompleted;
-                html += `<div class="column-building ${isCompleted ? 'done' : 'active'} ${clickable ? 'clickable' : ''}"
-                    ${clickable ? `onclick="startBuildSession()"` : ''}>
-                    ${renderBuildingSprite(building, blocksPlaced, building.blocksNeeded)}
-                    <div class="building-label">
-                        <span class="building-label-name">${building.name}</span>
-                        ${!isCompleted ? `<span class="building-label-pct">${pct}%</span>` : '<span class="building-label-pct">✅</span>'}
-                    </div>
-                </div>`;
-                shownActive = true;
-            }
+            html += `<div class="column-building ${isCompleted ? 'done' : 'active'} ${clickable ? 'clickable' : ''}"
+                ${clickable ? `onclick="handleCityBuildingClick('${building.id}')"` : ''}>
+                ${renderBuildingSprite(building, blocksPlaced, building.blocksNeeded)}
+                <div class="building-label">
+                    <span class="building-label-name">${building.name}</span>
+                    ${!isCompleted ? `<span class="building-label-pct">${pct}%</span>` : '<span class="building-label-pct">✅</span>'}
+                </div>
+            </div>`;
+            hasBuildings = true;
         }
 
-        // If no active building yet, show "choose" prompt for current player
-        if (!shownActive && isCurrentPlayer && activeStatus.unlocked) {
-            html += `<div class="column-building choose" onclick="openBuildMenu()">
-                <div class="choose-prompt">⛏</div>
-                <div class="building-label"><span class="building-label-name">Kies gebouw</span></div>
-            </div>`;
-        } else if (!shownActive && !isCurrentPlayer) {
-            // Other players who haven't picked yet
-            html += `<div class="column-building ghost-slot">
-                <div class="choose-prompt" style="opacity:0.3">?</div>
-            </div>`;
+        // Show "choose" prompt for current player if they can still build
+        if (isCurrentPlayer && activeStatus.unlocked) {
+            const allDone = activeLayer.buildings.every(b => {
+                const bld = pd?.world?.buildings?.find(x => x.projectId === b.id);
+                return bld && bld.completed;
+            });
+            if (!allDone) {
+                html += `<div class="column-building choose" onclick="openBuildMenu()">
+                    <div class="choose-prompt">⛏</div>
+                    <div class="building-label"><span class="building-label-name">Kies gebouw</span></div>
+                </div>`;
+            }
         }
 
         html += '</div>'; // column-buildings

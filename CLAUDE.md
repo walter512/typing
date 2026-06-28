@@ -25,6 +25,13 @@ Elke wijziging wordt beoordeeld door deze 4 perspectieven:
 - Geen overbodige tekst — visuals spreken voor zich
 - Responsive, leesbaar (ook voor 7-jarige)
 
+## Gouden Regel: Voortgang is heilig
+- Spelersdata (IndexedDB) mag NOOIT verloren gaan door een code-update
+- Geen breaking changes aan de datastructuur zonder migratie van bestaande data
+- Nieuwe velden altijd optioneel maken met fallback-defaults (bijv. `player.x || 0`)
+- Bij schema-wijzigingen: migratiecode schrijven die oude data omzet naar het nieuwe formaat
+- Origin (domein/pad) mag niet veranderen — IndexedDB is daaraan gekoppeld
+
 ## Tech Stack
 - Pure frontend: HTML/CSS/JS, geen framework
 - Draait via `file://`, IndexedDB voor data

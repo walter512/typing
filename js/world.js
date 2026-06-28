@@ -153,28 +153,19 @@ async function getAvailableProjects(player) {
         playerDataMap[id] = await getPlayer(id);
     }
 
-    // Find the player's target layer: first unlocked layer where they have no completed building
+    // Show all buildings in unlocked layers that this player hasn't completed yet
     const available = [];
     for (let i = 0; i < CITY_LAYERS.length; i++) {
         const status = getLayerStatus(i, playerDataMap);
         if (!status.unlocked) continue;
 
         const layer = CITY_LAYERS[i];
-        const playerHasCompleted = layer.buildings.some(b => {
-            const bld = player.world.buildings.find(x => x.projectId === b.id);
-            return bld && bld.completed;
-        });
-        if (playerHasCompleted) continue; // already done this layer
-
-        // Show available buildings in this layer (unclaimed or player's own)
         for (const b of layer.buildings) {
-            const claim = status.claims[b.id];
-            if (!claim || (claim.playerId === player.id && !claim.completed)) {
-                const proj = BUILDING_PROJECTS.find(p => p.id === b.id);
-                if (proj) available.push(proj);
-            }
+            const myBld = player.world.buildings.find(x => x.projectId === b.id);
+            if (myBld && myBld.completed) continue;
+            const proj = BUILDING_PROJECTS.find(p => p.id === b.id);
+            if (proj) available.push(proj);
         }
-        break; // only show one layer at a time
     }
     return available;
 }
