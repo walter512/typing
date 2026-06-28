@@ -716,19 +716,18 @@ function getPlayerColor(playerId) {
 }
 
 /* ===== Per-player accessibility: unlocked + 1 wijk vooruit ===== */
+const BUILDINGS_PER_PLAYER_TO_ADVANCE = 3;
+
 function isLayerAccessible(layerIndex, player, layerStatuses) {
-    if (layerStatuses[layerIndex].unlocked) return true;
     if (layerIndex === 0) return true;
 
-    const prevStatus = layerStatuses[layerIndex - 1];
-    if (!prevStatus.unlocked) return false;
-
     const prevLayer = CITY_LAYERS[layerIndex - 1];
-    const playerDoneInPrev = prevLayer.buildings.some(b => {
+    let playerDoneCount = 0;
+    for (const b of prevLayer.buildings) {
         const bld = player?.world?.buildings?.find(x => x.projectId === b.id);
-        return bld && bld.completed;
-    });
-    return playerDoneInPrev;
+        if (bld && bld.completed) playerDoneCount++;
+    }
+    return playerDoneCount >= BUILDINGS_PER_PLAYER_TO_ADVANCE;
 }
 
 /* ===== Wijk Status ===== */
