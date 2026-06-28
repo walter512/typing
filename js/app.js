@@ -293,8 +293,6 @@ async function openBuildMenu() {
             const hasStartedHere = myRecord && myRecord.blocksPlaced > 0 && !myRecord.completed;
             const accessible = layerIdx <= playerTargetWijk || hasStartedHere;
 
-            // Check current player's own status for this building
-            const myRecord = currentPlayer.world.buildings.find(b => b.projectId === project.id);
             const myComplete = myRecord && myRecord.completed;
             const myInProgress = myRecord && !myRecord.completed;
             const myPct = myRecord ? Math.round((myRecord.blocksPlaced / project.blocksNeeded) * 100) : 0;
