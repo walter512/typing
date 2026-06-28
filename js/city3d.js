@@ -1003,8 +1003,11 @@ async function renderCity(containerId) {
                 const pct = Math.min(100, Math.round((blocksPlaced / building.blocksNeeded) * 100));
                 const clickable = isCurrentPlayer && !isCompleted;
 
+                const canRemove = isCurrentPlayer && !isCompleted && blocksPlaced === 0;
+
                 html += `<div class="column-building ${isCompleted ? 'done' : 'active'} ${clickable ? 'clickable' : ''}"
                     ${clickable ? `onclick="handleCityBuildingClick('${building.id}')"` : ''}>
+                    ${canRemove ? `<span class="building-remove" onclick="event.stopPropagation(); cancelBuildProject('${building.id}')">✕</span>` : ''}
                     ${renderBuildingSprite(building, blocksPlaced, building.blocksNeeded)}
                     <div class="building-label">
                         <span class="building-label-name">${building.name}</span>

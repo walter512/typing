@@ -267,17 +267,48 @@
         <div class="parent-content" id="parent-content"></div>
     </div>
 
+    <!-- SCREEN: Zombie Attack -->
+    <div id="screen-zombie" class="screen">
+        <div class="zombie-bg">
+            <div class="zombie-sky"></div>
+            <div class="zombie-ground"></div>
+        </div>
+        <div class="zombie-hud">
+            <div class="zombie-title" id="zombie-title">🧟 Zombie Aanval! 🧟</div>
+            <div class="zombie-timer-bar">
+                <div class="zombie-timer-fill" id="zombie-timer-fill"></div>
+            </div>
+            <div class="zombie-stats">
+                <span id="zombie-wpm">0 WPM</span>
+                <span id="zombie-target">Doel: 0 WPM</span>
+            </div>
+        </div>
+        <div class="zombie-field" id="zombie-field">
+            <div class="zombie-horde zombie-left" id="zombie-left"></div>
+            <div class="zombie-player" id="zombie-player">⛏️</div>
+            <div class="zombie-horde zombie-right" id="zombie-right"></div>
+        </div>
+        <div class="zombie-typing-area">
+            <div class="zombie-text-display" id="zombie-text-display"></div>
+            <textarea id="zombie-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+        </div>
+        <div class="zombie-health-section">
+            <div class="zombie-hearts" id="zombie-hearts"></div>
+            <div class="zombie-kills" id="zombie-kills">Verslagen: 0</div>
+        </div>
+    </div>
+
     <!-- Toast notification -->
     <div id="toast" class="toast"></div>
 
-    <script src="js/data.js?v=5"></script>
-    <script src="js/lessons.js?v=5"></script>
-    <script src="js/engine.js?v=5"></script>
-    <script src="js/sounds.js?v=5"></script>
-    <script src="js/city3d.js?v=5"></script>
-    <script src="js/world.js?v=5"></script>
-    <script src="js/game.js?v=5"></script>
-    <script src="js/dashboard.js?v=5"></script>
-    <script src="js/app.js?v=5"></script>
+    <script src="js/data.js?v=6"></script>
+    <script src="js/lessons.js?v=6"></script>
+    <script src="js/engine.js?v=6"></script>
+    <script src="js/sounds.js?v=6"></script>
+    <script src="js/city3d.js?v=6"></script>
+    <script src="js/world.js?v=6"></script>
+    <script src="js/game.js?v=6"></script>
+    <script src="js/dashboard.js?v=6"></script>
+    <script src="js/app.js?v=6"></script>
 </body>
 </html>

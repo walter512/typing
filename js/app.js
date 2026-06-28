@@ -8,6 +8,8 @@ let currentProject = null;
 let wordCount = 0;
 let activeRandomEvent = null;
 let sessionBlocksPlaced = 0;
+let sessionPracticeMinutes = 0;
+let zombieAttackTriggered = false;
 
 /* ===== Screen Navigation ===== */
 
@@ -20,6 +22,10 @@ function showScreen(screenId) {
         stopLessonUpdates();
     }
     if (screenId === 'screen-world') {
+        if (!zombieAttackTriggered && sessionPracticeMinutes >= 20) {
+            zombieAttackTriggered = true;
+            setTimeout(() => startZombieAttack(), 800);
+        }
         updateWorldScreen();
     }
 }
@@ -709,6 +715,309 @@ function triggerRandomEvent(event) {
     currentPlayer.world.eventsEncountered++;
 }
 
+/* ===== Zombie Attack Mini-Game ===== */
+
+const ZOMBIE_DURATION = 45;
+const ZOMBIE_ICONS = ['🧟', '🧟‍♂️', '🧟‍♀️', '💀', '🦴'];
+let zombieState = null;
+
+function startZombieAttack() {
+    if (!currentPlayer) return;
+
+    const targetWpm = Math.max(8, currentPlayer.bestWpm || 10);
+    const words = getZombieWords();
+
+    zombieState = {
+        words,
+        text: words.join(' '),
+        pos: 0,
+        startTime: null,
+        correctCount: 0,
+        totalKeys: 0,
+        wordsTyped: 0,
+        zombiesKilled: 0,
+        totalZombies: 12,
+        playerHp: 5,
+        targetWpm,
+        timeLeft: ZOMBIE_DURATION,
+        interval: null,
+        animFrame: null,
+        zombiePositions: { left: 100, right: 100 },
+        won: null
+    };
+
+    soundZombieAlarm();
+    renderZombieScreen();
+    showScreen('screen-zombie');
+
+    setTimeout(() => {
+        document.getElementById('zombie-input').focus();
+        zombieState.startTime = Date.now();
+        zombieState.interval = setInterval(updateZombieTimer, 100);
+        zombieState.animFrame = requestAnimationFrame(animateZombies);
+    }, 500);
+}
+
+function getZombieWords() {
+    let allWords = [];
+    const maxBiome = currentPlayer ? currentPlayer.currentBiome : 0;
+    const maxLesson = currentPlayer ? currentPlayer.currentLesson : 999;
+    for (let bi = 0; bi <= maxBiome; bi++) {
+        const lessonSet = LESSON_SETS[bi];
+        if (!lessonSet) continue;
+        const limit = (bi < maxBiome) ? lessonSet.lessons.length : maxLesson + 1;
+        for (let li = 0; li < Math.min(lessonSet.lessons.length, limit); li++) {
+            const lesson = lessonSet.lessons[li];
+            if (lesson.words) allWords.push(...lesson.words);
+        }
+    }
+    if (allWords.length === 0) {
+        const first = LESSON_SETS[0];
+        if (first?.lessons[0]?.words) allWords.push(...first.lessons[0].words);
+    }
+    for (let i = allWords.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allWords[i], allWords[j]] = [allWords[j], allWords[i]];
+    }
+    return allWords.slice(0, 80);
+}
+
+function renderZombieScreen() {
+    const z = zombieState;
+
+    // Render zombie hordes
+    const leftHorde = document.getElementById('zombie-left');
+    const rightHorde = document.getElementById('zombie-right');
+    let leftHtml = '', rightHtml = '';
+    const half = Math.ceil(z.totalZombies / 2);
+    for (let i = 0; i < half; i++) {
+        const icon = ZOMBIE_ICONS[i % ZOMBIE_ICONS.length];
+        const killed = i < Math.floor(z.zombiesKilled / 2);
+        const size = 28 + Math.random() * 16;
+        const y = Math.random() * 30;
+        leftHtml += `<span class="zombie-mob ${killed ? 'dead' : ''}" style="font-size:${size}px; top:${y}%">${icon}</span>`;
+    }
+    for (let i = 0; i < z.totalZombies - half; i++) {
+        const icon = ZOMBIE_ICONS[i % ZOMBIE_ICONS.length];
+        const killed = (half + i) < z.zombiesKilled;
+        const size = 28 + Math.random() * 16;
+        const y = Math.random() * 30;
+        rightHtml += `<span class="zombie-mob ${killed ? 'dead' : ''}" style="font-size:${size}px; top:${y}%">${icon}</span>`;
+    }
+    leftHorde.innerHTML = leftHtml;
+    rightHorde.innerHTML = rightHtml;
+
+    // Hearts
+    const hearts = document.getElementById('zombie-hearts');
+    hearts.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+        hearts.innerHTML += `<span class="zombie-heart ${i < z.playerHp ? '' : 'lost'}">${i < z.playerHp ? '❤️' : '🖤'}</span>`;
+    }
+
+    document.getElementById('zombie-kills').textContent = `Verslagen: ${z.zombiesKilled}/${z.totalZombies}`;
+    document.getElementById('zombie-target').textContent = `Doel: ${z.targetWpm} WPM`;
+
+    // Render text
+    renderZombieText();
+}
+
+function renderZombieText() {
+    const z = zombieState;
+    const display = document.getElementById('zombie-text-display');
+    let html = '';
+    for (let i = 0; i < z.text.length; i++) {
+        let cls = 'zombie-char';
+        if (i < z.pos) cls += ' typed';
+        else if (i === z.pos) cls += ' current';
+        const ch = z.text[i] === ' ' ? '&nbsp;' : z.text[i];
+        html += `<span class="${cls}">${ch}</span>`;
+    }
+    display.innerHTML = html;
+
+    // Scroll to keep current visible
+    const currentEl = display.querySelector('.current');
+    if (currentEl) {
+        const displayRect = display.getBoundingClientRect();
+        const charRect = currentEl.getBoundingClientRect();
+        if (charRect.top > displayRect.top + displayRect.height * 0.6) {
+            display.scrollTop += charRect.top - displayRect.top - displayRect.height * 0.3;
+        }
+    }
+}
+
+function updateZombieTimer() {
+    const z = zombieState;
+    if (!z || z.won !== null) return;
+
+    const elapsed = (Date.now() - z.startTime) / 1000;
+    z.timeLeft = Math.max(0, ZOMBIE_DURATION - elapsed);
+
+    const pct = (z.timeLeft / ZOMBIE_DURATION) * 100;
+    document.getElementById('zombie-timer-fill').style.width = pct + '%';
+    document.getElementById('zombie-timer-fill').style.background =
+        pct > 50 ? 'var(--green, #4caf50)' : pct > 25 ? 'var(--gold, #ffc107)' : 'var(--red, #f44336)';
+
+    // Current WPM
+    const mins = elapsed / 60;
+    const wpm = mins > 0 ? Math.round((z.correctCount / 5) / mins) : 0;
+    document.getElementById('zombie-wpm').textContent = wpm + ' WPM';
+
+    if (z.timeLeft <= 0) {
+        endZombieAttack(z.zombiesKilled >= z.totalZombies);
+    }
+}
+
+function animateZombies() {
+    const z = zombieState;
+    if (!z || z.won !== null) return;
+
+    const elapsed = (Date.now() - z.startTime) / 1000;
+    const mins = elapsed / 60;
+    const wpm = mins > 0.05 ? Math.round((z.correctCount / 5) / mins) : z.targetWpm;
+
+    // Zombies advance if WPM is below target, retreat if above
+    const ratio = z.targetWpm > 0 ? wpm / z.targetWpm : 1;
+    const speed = ratio >= 1 ? -0.3 : 0.2 * (1 - ratio);
+
+    z.zombiePositions.left = Math.max(5, Math.min(100, z.zombiePositions.left + speed));
+    z.zombiePositions.right = Math.max(5, Math.min(100, z.zombiePositions.right + speed));
+
+    const leftHorde = document.getElementById('zombie-left');
+    const rightHorde = document.getElementById('zombie-right');
+    if (leftHorde) leftHorde.style.transform = `translateX(${-(100 - z.zombiePositions.left)}%)`;
+    if (rightHorde) rightHorde.style.transform = `translateX(${(100 - z.zombiePositions.right)}%)`;
+
+    // Player shake when zombies are close
+    const player = document.getElementById('zombie-player');
+    if (z.zombiePositions.left < 25) {
+        player.classList.add('shake');
+    } else {
+        player.classList.remove('shake');
+    }
+
+    // Damage if zombies reach player
+    if (z.zombiePositions.left <= 8 || z.zombiePositions.right <= 8) {
+        z.playerHp--;
+        z.zombiePositions.left = Math.max(30, z.zombiePositions.left + 20);
+        z.zombiePositions.right = Math.max(30, z.zombiePositions.right + 20);
+        soundKeyError();
+        renderZombieScreen();
+        if (z.playerHp <= 0) {
+            endZombieAttack(false);
+            return;
+        }
+    }
+
+    z.animFrame = requestAnimationFrame(animateZombies);
+}
+
+function handleZombieKey(e) {
+    const z = zombieState;
+    if (!z || z.won !== null) return;
+    if (e.key.length !== 1 && e.key !== ' ') return;
+
+    e.preventDefault();
+    z.totalKeys++;
+    const expected = z.text[z.pos];
+
+    if (e.key === expected) {
+        z.correctCount++;
+        z.pos++;
+        soundKeyCorrect();
+
+        // Word complete
+        if (e.key === ' ' || z.pos >= z.text.length) {
+            z.wordsTyped++;
+
+            // Kill a zombie every 3 words
+            if (z.wordsTyped % 3 === 0 && z.zombiesKilled < z.totalZombies) {
+                z.zombiesKilled++;
+                soundMobHit();
+                z.zombiePositions.left = Math.min(100, z.zombiePositions.left + 8);
+                z.zombiePositions.right = Math.min(100, z.zombiePositions.right + 8);
+                renderZombieScreen();
+            }
+
+            if (z.zombiesKilled >= z.totalZombies) {
+                endZombieAttack(true);
+                return;
+            }
+        }
+
+        renderZombieText();
+
+        if (z.pos >= z.text.length) {
+            endZombieAttack(z.zombiesKilled >= z.totalZombies);
+            return;
+        }
+    } else {
+        soundKeyError();
+    }
+}
+
+async function endZombieAttack(won) {
+    const z = zombieState;
+    if (!z) return;
+    z.won = won;
+
+    if (z.interval) clearInterval(z.interval);
+    if (z.animFrame) cancelAnimationFrame(z.animFrame);
+
+    const title = document.getElementById('zombie-title');
+    const field = document.getElementById('zombie-field');
+
+    if (won) {
+        soundMobDefeat();
+        title.textContent = '⚔️ Zombies Verslagen! ⚔️';
+        title.style.color = 'var(--gold, #ffc107)';
+
+        // Bonus rewards
+        const bonusXp = 50;
+        const bonusResource = 'ijzer';
+        const bonusAmount = 5;
+        currentPlayer.xp += bonusXp;
+        currentPlayer.resources[bonusResource] = (currentPlayer.resources[bonusResource] || 0) + bonusAmount;
+        const levelInfo = calculateLevel(currentPlayer.xp);
+        currentPlayer.level = levelInfo.level;
+        currentPlayer.xpToNext = levelInfo.xpToNext;
+        await savePlayer(currentPlayer);
+
+        // Victory animation
+        field.innerHTML = `
+            <div class="zombie-victory">
+                <div style="font-size:48px; margin-bottom:16px">🏆</div>
+                <div style="font-size:12px; color:var(--gold)">+${bonusXp} XP</div>
+                <div style="font-size:12px; color:var(--text-secondary)">+${bonusAmount} ${bonusResource}</div>
+                <div style="font-size:10px; margin-top:12px">${z.zombiesKilled}/${z.totalZombies} zombies verslagen</div>
+                <button class="btn-minecraft btn-primary" style="margin-top:20px" onclick="showScreen('screen-world')">🏘️ Terug naar de Stad</button>
+            </div>`;
+    } else {
+        soundKeyError();
+        title.textContent = '💀 De Zombies Winnen... 💀';
+        title.style.color = 'var(--red, #f44336)';
+
+        field.innerHTML = `
+            <div class="zombie-victory">
+                <div style="font-size:48px; margin-bottom:16px">🧟</div>
+                <div style="font-size:12px; color:var(--text-secondary)">Je hebt ${z.zombiesKilled}/${z.totalZombies} zombies verslagen</div>
+                <div style="font-size:10px; color:var(--gold); margin-top:8px">Oefen meer om sneller te worden!</div>
+                <button class="btn-minecraft btn-primary" style="margin-top:20px" onclick="showScreen('screen-world')">🏘️ Terug naar de Stad</button>
+            </div>`;
+    }
+}
+
+function soundZombieAlarm() {
+    // Dramatic warning horn
+    playTone(150, 0.4, 'sawtooth', 0.15);
+    setTimeout(() => playTone(120, 0.4, 'sawtooth', 0.15), 400);
+    setTimeout(() => playTone(100, 0.6, 'sawtooth', 0.18), 800);
+    setTimeout(() => {
+        playTone(200, 0.1, 'square', 0.1);
+        setTimeout(() => playTone(200, 0.1, 'square', 0.1), 200);
+        setTimeout(() => playTone(200, 0.1, 'square', 0.1), 400);
+    }, 1400);
+}
+
 /* ===== Typing Input Handler ===== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -727,6 +1036,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeScreen = document.querySelector('.screen.active');
         if (!activeScreen) return;
         const screenId = activeScreen.id;
+
+        // Zombie attack screen
+        if (screenId === 'screen-zombie') {
+            handleZombieKey(e);
+            return;
+        }
 
         // Profile screen: 1/2/3 to pick player
         if (screenId === 'screen-profiles') {
@@ -974,6 +1289,8 @@ function showResultsBuilding(blocksPlaced, highlightBlocks) {
 
 async function saveSessionData(stats) {
     if (!stats || !currentPlayer) return;
+
+    sessionPracticeMinutes += (stats.elapsedMinutes || 0);
 
     const handicap = PLAYERS[currentPlayer.id]?.handicap || 1;
     const multiplier = currentPlayer.world.xpMultiplier || 1;
