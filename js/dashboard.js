@@ -351,14 +351,9 @@ async function importData(input) {
         }
 
         // Import sessions
-        const d = await openDB();
         for (const session of data.sessions) {
-            await new Promise((resolve, reject) => {
-                const tx = d.transaction('sessions', 'readwrite');
-                tx.objectStore('sessions').put(session);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
+            delete session.id;
+            await saveSession(session);
         }
 
         showToast('✅ Backup geïmporteerd!');
@@ -370,11 +365,13 @@ async function importData(input) {
     }
 }
 
-function confirmResetData() {
+async function confirmResetData() {
     if (confirm('Weet je zeker dat je ALLE data wilt verwijderen? Dit kan niet ongedaan worden!')) {
         if (confirm('Echt zeker? Alle voortgang van alle spelers wordt gewist!')) {
-            indexedDB.deleteDatabase(DB_NAME);
-            db = null;
+            for (const id of Object.keys(PLAYERS)) {
+                const blank = { id, name: PLAYERS[id].name, age: PLAYERS[id].age, level: 1, xp: 0, xpToNext: 100, currentBiome: 0, currentLesson: 0, totalBlocks: 0, bestWpm: 0, bestAccuracy: 0, streak: 0, lastPracticeDate: null, resources: { hout: 0, steen: 0, ijzer: 0, goud: 0, diamant: 0 }, inventory: [], achievements: [], keyErrors: {}, totalSessions: 0, totalMinutes: 0, createdAt: new Date().toISOString() };
+                await savePlayer(blank);
+            }
             location.reload();
         }
     }

@@ -695,8 +695,9 @@ function triggerRandomEvent(event) {
 
 /* ===== Typing Input Handler ===== */
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Add floating Minecraft items to profile screen
+document.addEventListener('DOMContentLoaded', async () => {
+    await migrateFromIndexedDB();
+
     addFloatingItems();
 
     const input = document.getElementById('typing-input');
@@ -1500,7 +1501,6 @@ function showParentTab(tab) {
 
 async function initApp() {
     try {
-        await openDB();
         for (const id of Object.keys(PLAYERS)) {
             await initPlayerData(id);
         }
